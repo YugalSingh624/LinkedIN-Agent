@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Invitation Feature Coming Soon{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="card shadow border-0 mb-5">
+        <!-- Header -->
+        <div class="card-header bg-info text-dark" style="background: linear-gradient(135deg, #0dcaf0, #0d6efd);">
+            <div class="row align-items-center py-4">
+                <div class="col">
+                    <h1 class="display-5 mb-0 fw-bold">
+                        <i class="bi bi-envelope-paper me-2"></i>Invitation Feature
+                    </h1>
+                    <p class="lead mb-0 mt-1 px-2">Coming Soon</p>
+                </div>
+                <div class="col-auto">
+                    <a href="{{ url_for('saved_profiles') }}" class="btn btn-outline-dark">
+                        <i class="bi bi-arrow-left me-2"></i>Back to Saved Profiles
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card-body p-5 text-center">
+            <div class="py-5">
+                <i class="bi bi-clock-history text-info" style="font-size: 5rem;"></i>
+                
+                <h2 class="mt-4">We're Working On It!</h2>
+                <p class="lead text-muted mt-3">
+                    The invitation feature is currently under development and will be available soon.
+                </p>
+                <p class="text-muted mt-3">
+                    This feature will allow educators to send personalized invitations to students and faculty members.
+                    Stay tuned for updates!
+                </p>
+                
+                <div class="mt-5">
+                    <a href="{{ url_for('saved_profiles') }}" class="btn btn-primary">
+                        <i class="bi bi-arrow-left me-2"></i>Return to Saved Profiles
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

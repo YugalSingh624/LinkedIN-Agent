@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% block title %}Profile{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="card shadow border-0 mb-5">
+        <!-- Header with profile picture and name -->
+        <div class="card-header bg-primary text-white" style="background: linear-gradient(135deg, #0056b3, #003d80);">
+            <div class="row align-items-center py-4 text-center text-md-start">
+                <div class="col-auto">
+                    <div class="p-2 rounded-circle bg-white" style="display: inline-block;">
+                        <img src="{{ session.get('profile_picture.jpg', url_for('static', filename='profile_picture.jpg')) }}" 
+                             alt="Profile Picture" 
+                             class="img-fluid rounded-circle border border-white" 
+                             style="width: 120px; height: 120px; object-fit: cover; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">
+                    </div>
+                </div>
+                <div class="col">
+                    <h1 class="display-5 mb-0 fw-bold">{{ session.get("first_name", "User") }} {{ session.get("last_name", "") }}</h1>
+                    <p class="lead mb-0 mt-1">
+                        <i class="bi bi-envelope-fill me-2"></i>{{ session.get("email", "Not Available") }}
+                    </p>
+                </div>
+                <div class="col-md-3 text-md-end">
+                    <a href="{{ session.get('linkedin_url', '#') }}" target="_blank" class="btn btn-light">
+                        <i class="bi bi-linkedin me-2"></i>View LinkedIn Profile
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card-body p-4">
+            <!-- Education Section -->
+            <div class="mb-5">
+                <h2 class="border-bottom pb-2 mb-4 text-primary">
+                    <i class="bi bi-mortarboard-fill me-2"></i>Education
+                </h2>
+                
+                {% if session.get("education_details") %}
+                    {% for edu in session["education_details"] %}
+                        <div class="card mb-3 border-0 shadow-sm education-card" data-edu-index="{{ loop.index0 }}">
+                            <div class="card-body">
+                                <h4 class="card-title text-primary institution-name">{{ edu.get("InstitutionName", "N/A") }}</h4>
+                                <h5 class="card-subtitle mb-2 text-muted">{{ edu.get("Degree", "N/A") }} in {{ edu.get("Field_of_study", "N/A") }}</h5>
+                                
+                                {% if edu.get("TimePeriod") %}
+                                    <div class="badge bg-secondary mb-3">
+                                        {{ edu["TimePeriod"].get("startedOn", {}).get("year", "N/A") }} - 
+                                        {{ edu["TimePeriod"].get("endedOn", {}).get("year", "N/A") }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle-fill me-2"></i>No education details available.
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Connection Options Section -->
+            <div class="mb-5">
+                <h2 class="border-bottom pb-2 mb-4 text-primary">
+                    <i class="bi bi-people-fill me-2"></i>Connect With Your Network
+                </h2>
+                
+                <!-- Education Selection Dropdown -->
+                <div class="row mb-4">
+                    <div class="col-md-8">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body">
+                                <h5 class="card-title">Select Education for Network Search</h5>
+                                <p class="card-text">Choose which educational institution to search for connections from:</p>
+                                <select class="form-select form-select-lg mb-3" id="education-selector">
+                                    {% if session.get("education_details") %}
+                                        {% for edu in session["education_details"] %}
+                                            <option value="{{ loop.index0 }}">
+                                                {{ edu.get("InstitutionName", "N/A") }} - {{ edu.get("Degree", "N/A") }}
+                                            </option>
+                                        {% endfor %}
+                                    {% else %}
+                                        <option value="0">No education details available</option>
+                                    {% endif %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Connection Options Section -->
+            
+                <div class="row row-cols-1 row-cols-md-3 g-4">
+                  <div class="col">
+                    <div class="card h-100 border-0 shadow-sm connection-option" data-type="faculty">
+                      <div class="card-body text-center p-4 d-flex flex-column">
+                        <i class="bi bi-person-workspace text-primary mb-3" style="font-size: 3rem;"></i>
+                        <h3 class="card-title">Faculty</h3>
+                        <p class="card-text">Connect with professors and teachers from your institution</p>
+                        <div class="mt-auto">
+                          <button class="btn btn-primary select-connection-btn" data-type="faculty">
+                            <i class="bi bi-search me-2"></i>Find Faculty
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col">
+                    <div class="card h-100 border-0 shadow-sm connection-option" data-type="students">
+                      <div class="card-body text-center p-4 d-flex flex-column">
+                        <i class="bi bi-mortarboard text-primary mb-3" style="font-size: 3rem;"></i>
+                        <h3 class="card-title">Students</h3>
+                        <p class="card-text">Connect with fellow students and alumni from your institution</p>
+                        <div class="mt-auto">
+                          <button class="btn btn-primary select-connection-btn" data-type="students">
+                            <i class="bi bi-search me-2"></i>Find Students
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col">
+                    <div class="card h-100 border-0 shadow-sm">
+                      <div class="card-body text-center p-4 d-flex flex-column">
+                        <i class="bi bi-bookmark-star-fill text-warning mb-3" style="font-size: 3rem;"></i>
+                        <h3 class="card-title">Saved Profiles</h3>
+                        <p class="card-text">View profiles you've saved for later</p>
+                        <div class="mt-auto">
+                          <a href="{{ url_for('saved_profiles') }}" class="btn btn-warning">
+                            <i class="bi bi-bookmark-check me-2"></i>View Saved Profiles
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            <!-- Alumni/Connection Results Section -->
+            <div>
+                <h2 class="border-bottom pb-2 mb-4 text-primary" id="results-heading">
+                    <i class="bi bi-list-ul me-2"></i>Search Results
+                </h2>
+                
+                <!-- Loading spinner that will be shown while data is being fetched -->
+                <div id="alumni-loading" class="text-center py-5" style="display: none;">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <h4 class="text-muted">Loading profiles...</h4>
+                    <p class="text-muted">This may take a few moments</p>
+                </div>
+                
+                <!-- No selection message -->
+                <div id="no-selection" class="text-center py-5">
+                    <i class="bi bi-arrow-up-circle text-muted" style="font-size: 3rem;"></i>
+                    <h4 class="text-muted mt-3">Select an option above to start searching</h4>
+                </div>
+                
+                <!-- Alumni content that will be populated when data is available -->
+                <div id="alumni-content" style="display: none;">
+                    <div class="d-flex justify-content-between mb-3">
+                        <h5 id="search-info" class="text-muted"></h5>
+                    </div>
+                    <div class="row row-cols-1 row-cols-md-3 g-4" id="alumni-container">
+                        <!-- Will be populated via JavaScript -->
+                    </div>
+                </div>
+                
+                <!-- Error message if search fails -->
+                <div id="alumni-error" class="alert alert-danger" style="display: none;">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <span id="error-message">Error loading profiles.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast notification for save status -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="saveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <i class="bi bi-check-circle-fill text-success me-2"></i>
+            <strong class="me-auto">Profile Saved</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+            Profile has been saved successfully!
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript to handle the asynchronous loading of alumni data -->
+<script src="{{ url_for('static', filename='profile.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Saved Profiles{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="card shadow border-0 mb-5">
+        <!-- Header -->
+        <div class="card-header bg-warning text-dark" style="background: linear-gradient(135deg, #ffc107, #fd7e14);">
+            <div class="row align-items-center py-4">
+                <div class="col">
+                    <h1 class="display-5 mb-0 fw-bold">
+                        <i class="bi bi-bookmark-star me-2"></i>Saved Profiles
+                    </h1>
+                    <p class="lead mb-0 mt-1">Profiles you've saved for future reference</p>
+                </div>
+                <div class="col-auto">
+                    <a href="{{ url_for('profile') }}" class="btn btn-outline-dark">
+                        <i class="bi bi-arrow-left me-2"></i>Back to Profile
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card-body p-4">
+            {% if profiles %}
+                <!-- Filter Controls -->
+                <div class="mb-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                <input type="text" class="form-control" id="profileSearch" placeholder="Search profiles..." onkeyup="filterProfiles()">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="btn-group float-md-end" role="group">
+                                <button type="button" class="btn btn-outline-primary active filter-btn" data-filter="all">All</button>
+                                <button type="button" class="btn btn-outline-primary filter-btn" data-filter="faculty">Faculty</button>
+                                <button type="button" class="btn btn-outline-primary filter-btn" data-filter="students">Students</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Profiles Grid -->
+                <div class="row row-cols-1 row-cols-md-3 g-4" id="saved-profiles-container">
+                    {% for profile in profiles %}
+                        <div class="col profile-card" data-profile-type="{{ profile.profile_type }}" data-profile-name="{{ profile.name|lower }}">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-body text-center">
+                                    <div class="mb-3">
+                                        <i class="bi bi-person-circle text-{{ 'primary' if profile.profile_type == 'faculty' else 'success' }}" style="font-size: 3rem;"></i>
+                                        <span class="position-absolute top-0 end-0 translate-middle badge rounded-pill bg-{{ 'primary' if profile.profile_type == 'faculty' else 'success' }}">
+                                            {{ profile.profile_type|capitalize }}
+                                        </span>
+                                    </div>
+                                    <h5 class="card-title mb-2">{{ profile.name }}</h5>
+                                    <p class="card-text text-muted small mb-3">
+                                        <i class="bi bi-building me-1"></i>{{ profile.institute }}
+                                    </p>
+                                    <p class="card-text text-muted small mb-3">
+                                        <i class="bi bi-calendar me-1"></i>Saved on {{ profile.saved_at.strftime('%b %d, %Y') }}
+                                    </p>
+                                    <div class="d-flex justify-content-between gap-2">
+                                        <a href="{{ profile.link }}" target="_blank" class="btn btn-outline-primary btn-sm flex-grow-1">
+                                            <i class="bi bi-linkedin me-1"></i>View Profile
+                                        </a>
+                                        <button class="btn btn-outline-danger btn-sm" onclick="removeProfileFromSaved('{{ profile._id }}', '{{ profile.link }}')">
+                                            <i class="bi bi-trash"></i>❌
+                                        </button>
+                                    </div>
+                                    {% if session.get('role') in ['Teacher', 'Professor', 'Principal', 'teacher', 'professor', 'principal'] %}
+                                    <div class="mt-2">
+                                        <a href="{{ url_for('invitation_coming_soon') }}" class="btn btn-success btn-sm w-100">
+                                            <i class="bi bi-envelope me-1"></i>Send Invitation
+                                        </a>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <!-- No saved profiles message -->
+                <div class="text-center py-5">
+                    <i class="bi bi-bookmark text-muted" style="font-size: 4rem;"></i>
+                    <h3 class="mt-3 text-muted">No saved profiles yet</h3>
+                    <p class="text-muted">When you save profiles, they will appear here.</p>
+                    <a href="{{ url_for('profile') }}" class="btn btn-primary mt-3">
+                        <i class="bi bi-search me-2"></i>Find Profiles
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Toast notification for delete status -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="deleteToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <i class="bi bi-x-circle-fill text-danger me-2"></i>
+            <strong class="me-auto">Profile Removed</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+            Profile has been removed from your saved profiles.
+        </div>
+    </div>
+</div>
+<!-- JavaScript for filtering and removing profiles -->
+<script src="{{ url_for('static', filename='saved_profile.js') }}"></script>
+{% endblock %}
