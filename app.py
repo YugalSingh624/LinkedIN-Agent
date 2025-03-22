@@ -96,22 +96,24 @@ def handle_login():
         f"&redirect_uri={REDIRECT_URI}&scope=openid%20profile%20email"
     )
 
-def perform_connection_search(user_id, institute_name, degree_or_roll, search_type, start_year, end_year):
+def perform_connection_search(user_id, institute_name, degree_or_roll, search_type, start_date, end_date):
     """
     Background task to perform connection search based on type
 
     """
-    role  = "professor" or "teacher" or "principal"
+    print("Searched for:", search_type)
 
     try:
         # If we have multiple education entries, use the first one for search
         if isinstance(institute_name, list):
             institute_name = institute_name[0]
             
-        if search_type == "faculty":
-            query = f'site:linkedin.com/in "{institute_name}" "professor" "{start_year}" "{end_year}" '
+        if "faculty" in search_type:
+            query = f'site:linkedin.com/in "{institute_name}" "professor" '
         else:  # students
-            query = f'site:linkedin.com/in "{institute_name}" "{degree_or_roll}" "{end_year}"'
+            query = f'site:linkedin.com/in "{institute_name}" "{degree_or_roll}" "{start_date}" '
+
+        print("Query used is:", query)
         
         # Pass the search_type to connection_search
         urls = connection_search(query, search_type)
@@ -187,21 +189,6 @@ def callback():
         session["last_name"] = profile_data.get("family_name", "Unknown")
         session["email"] = profile_data.get("email", "Not Available")
         
-        # Directly assign the education details from the provided JSON
-        # This now accepts a list of education entries
-        education_details = [
-            {'Degree': "Bachelor's degree", 'Field_of_study': 'Human, Social & Political Sciences', 
-             'InstitutionName': 'University of Cambridge', 
-             'TimePeriod': {'endedOn': {'year': 2016}, 'startedOn': {'year': 2013}}},
-            {'Degree': 'Access Diploma', 'Field_of_study': 'Mixed Media', 
-             'InstitutionName': 'City and Islington College', 
-             'TimePeriod': {'endedOn': {'year': 2013}, 'startedOn': {'year': 2012}}},
-            #  {'Degree': 'Access Diploma', 'Field_of_study': 'Mixed Media', 
-            #  'InstitutionName': 'City and Islington College',
-            #  'TimePeriod': {'endedOn': {'year': 2013}, 'startedOn': {'year': 2012}}}
-        ]
-        session["education_details"] = education_details
-        
         # For LinkedIn URL search, use the first institution if multiple are present
         session["linkedin_url"] = search_linkedin_profile_advanced(
             session["first_name"], 
@@ -209,6 +196,20 @@ def callback():
             session["education"],
             session["add_info"]
         )
+        # Directly assign the education details from the provided JSON
+        education_details = fetch_education_details(session["linkedin_url"])
+        # This now accepts a list of education entries
+        # education_details = [
+        #     {'Degree': "Bachelor's degree", 'Field_of_study': 'Human, Social & Political Sciences', 
+        #      'InstitutionName': 'University of Cambridge', 
+        #      'TimePeriod': {'endedOn': {'year': 2016}, 'startedOn': {'year': 2013}}},
+        #     {'Degree': 'Access Diploma', 'Field_of_study': 'Mixed Media', 
+        #      'InstitutionName': 'City and Islington College', 
+        #      'TimePeriod': {'endedOn': {'year': 2013}, 'startedOn': {'year': 2012}}},
+        # ]
+        session["education_details"] = education_details
+        
+
 
         # Generate a unique user ID for tracking the background task
         user_id = str(hash(f"{session['first_name']}{session['last_name']}{session['email']}"))
@@ -229,6 +230,27 @@ def callback():
 
     except requests.exceptions.RequestException as e:
         return f"LinkedIn API Error: {e}", 500
+
+def fetch_education_details(profile_link):
+    url = f"https://api.lix-it.com/v1/person?profile_link={profile_link}"
+
+    payload={}
+    headers = {
+    'Authorization': "L3ph4nWFY3YPNzEcXtHQZkLYn4x5HM2KUFPX0lYbMvCbszI3hMtv7AWYJnzI"
+    }
+
+    response = requests.request("GET", url, headers=headers, data=payload)
+    education_details = []
+    for i in range(len(response.json().get('education', []))):
+        education_item = response.json()['education'][i]
+        education_details.append({
+            'InstitutionName': education_item.get('institutionName', ''),
+            'Degree': education_item.get('degree', ''),
+            'Field_of_study': education_item.get('fieldOfStudy', ''),
+            'TimePeriod': education_item.get('timePeriod', '')
+        })
+
+    return education_details
 
 @app.route("/start_search")
 def start_search():
@@ -268,8 +290,8 @@ def start_search():
         selected_education = education_details[education_index]
         institute_name = selected_education.get("InstitutionName", "Unknown Institution")
         degree_or_roll = selected_education.get("Degree", "Student")
-        end_year = selected_education.get("TimePeriod").get("endedOn").get("year")
-        start_year = selected_education.get("TimePeriod").get("startedOn").get("year")
+        start_date = selected_education.get("TimePeriod", "").get("startedOn", "").get("year", "")
+        end_date = selected_education.get("TimePeriod", "").get("endedOn", "").get("year", "")
     else:
         # Fallback to first education if index is invalid
         institute_name = education_details[0].get("InstitutionName", "Unknown Institution") if education_details else "Unknown Institution"
@@ -282,8 +304,9 @@ def start_search():
         institute_name, 
         degree_or_roll, 
         search_key , # Use the combined key so we can store different searches
-        start_year,
-        end_year
+        start_date,
+        end_date
+        
     )
     
     return jsonify({"success": True, "search_key": search_key})
@@ -439,7 +462,7 @@ def connection_search(query, search_type="students"):
     # Set num based on search type
     num_results = 5 if search_type == "faculty" else 10
     
-    for i in range(1, 10, 10):
+    for i in range(1, 100, 10):
         params = {
             "q": query,
             "cx": CSE_ID,
