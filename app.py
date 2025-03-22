@@ -14,7 +14,7 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.getenv("secret_key")  # Change this in production
-
+# app.secret_key = "your_secret_key"
 #lix_it_api
 
 lix_it_api = os.getenv("lix_it_key")
@@ -90,9 +90,9 @@ def handle_login():
     session["add_info"] = add_info
     session["role"] = role  # Store the role in the session
 
-    print(session["education"])
-    print(session["add_info"])
-    print(session["role"])  # Log the role
+    # print(session["education"])
+    # print(session["add_info"])
+    # print(session["role"])  # Log the role
 
     flash("Login successful!", "success")
     return redirect(
@@ -105,7 +105,7 @@ def perform_connection_search(user_id, institute_name, degree_or_roll, search_ty
     Background task to perform connection search based on type
 
     """
-    print("Searched for:", search_type)
+    # print("Searched for:", search_type)
 
     try:
         # If we have multiple education entries, use the first one for search
@@ -117,11 +117,11 @@ def perform_connection_search(user_id, institute_name, degree_or_roll, search_ty
         else:  # students
             query = f'site:linkedin.com/in "{institute_name}" "{degree_or_roll}" "{start_date}" '
 
-        print("Query used is:", query)
+        # print("Query used is:", query)
         
         # Pass the search_type to connection_search
         urls = connection_search(query, search_type)
-        print("These are urls: ", urls)
+        # print("These are urls: ", urls)
         
         results = []
         for url in urls:
@@ -193,6 +193,7 @@ def callback():
         session["last_name"] = profile_data.get("family_name", "Unknown")
         session["email"] = profile_data.get("email", "Not Available")
         
+        
         # For LinkedIn URL search, use the first institution if multiple are present
         session["linkedin_url"] = search_linkedin_profile_advanced(
             session["first_name"], 
@@ -200,6 +201,8 @@ def callback():
             session["education"],
             session["add_info"]
         )
+
+        # print("The Linked Profile is:",session["linkedin_url"])
         # Directly assign the education details from the provided JSON
         education_details = fetch_education_details(session["linkedin_url"])
         # This now accepts a list of education entries
@@ -496,7 +499,7 @@ def alumni_search(institute_name, degree):
     
 def search_linkedin_profile_advanced(first_name, last_name, College, job_title=""):
     search_query = f"{first_name} {last_name} {College} {job_title} site:linkedin.com/in"
-    params = {"q": search_query, "cx": CSE_ID, "key": GOOGLE_API_KEY}
+    params = {"q": search_query, "cx": CSE_ID, "key": GOOGLE_API_KEY, "num" :1}
 
     try:
         response = requests.get(GOOGLE_SEARCH_URL, params=params)
@@ -506,12 +509,14 @@ def search_linkedin_profile_advanced(first_name, last_name, College, job_title="
         if "items" in search_results and len(search_results["items"]) > 0:
             linkedin_urls = [item["link"] for item in search_results["items"]]
 
+            # print("Linedin urls are:", linkedin_urls)
+
             # Prioritize exact match with names in URL
             lower_first = first_name.lower()
             lower_last = last_name.lower()
             for url in linkedin_urls:
                 if lower_first in url.lower() and lower_last in url.lower():
-                    print(url)
+                    # print(url)
                     return url
 
             # Return first available LinkedIn link if no perfect match
@@ -532,9 +537,10 @@ def download_image(image_url, save_path="static/profile_picture.jpg"):
         with open(save_path, "wb") as file:
             for chunk in response.iter_content(1024):
                 file.write(chunk)
-        print(f"Image downloaded successfully: {save_path}")
+        # print(f"Image downloaded successfully: {save_path}")
     else:
-        print("Failed to download image")
+        # print("Failed to download image")
+        pass
 
 @app.route("/invitation_coming_soon")
 def invitation_coming_soon():
