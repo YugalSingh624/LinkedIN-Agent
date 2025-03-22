@@ -15,6 +15,10 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.getenv("secret_key")  # Change this in production
 
+#lix_it_api
+
+lix_it_api = os.getenv("lix_it_key")
+
 # LinkedIn API Credentials (Move these to environment variables in production)
 CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
@@ -236,7 +240,7 @@ def fetch_education_details(profile_link):
 
     payload={}
     headers = {
-    'Authorization': "L3ph4nWFY3YPNzEcXtHQZkLYn4x5HM2KUFPX0lYbMvCbszI3hMtv7AWYJnzI"
+    'Authorization': lix_it_api
     }
 
     response = requests.request("GET", url, headers=headers, data=payload)
