@@ -78,16 +78,16 @@ def handle_login():
     Handles form-based login from index.html.
     """
     education = request.form.get("name")
-    add_info = request.form.get("email")
+    # add_info = request.form.get("email")
     role = request.form.get("role")  # Get the user's role
 
-    if not education or not add_info or not role:
+    if not education  or not role:
         flash("Please enter all required information.", "danger")
         return redirect(url_for("home"))
 
     # Store in session
     session["education"] = education
-    session["add_info"] = add_info
+    # session["add_info"] = add_info
     session["role"] = role  # Store the role in the session
 
     # print(session["education"])
@@ -195,12 +195,14 @@ def callback():
         
         
         # For LinkedIn URL search, use the first institution if multiple are present
-        session["linkedin_url"] = search_linkedin_profile_advanced(
-            session["first_name"], 
-            session["last_name"],
-            session["education"],
-            session["add_info"]
-        )
+        # session["linkedin_url"] = search_linkedin_profile_advanced(
+        #     session["first_name"], 
+        #     session["last_name"],
+        #     session["education"],
+        #     session["add_info"]
+        # )
+        session["linkedin_url"] = session["education"]
+
 
         # print("The Linked Profile is:",session["linkedin_url"])
         # Directly assign the education details from the provided JSON
