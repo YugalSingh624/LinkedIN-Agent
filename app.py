@@ -115,7 +115,7 @@ def perform_connection_search(user_id, institute_name, degree_or_roll, search_ty
         if "faculty" in search_type:
             query = f'site:linkedin.com/in "{institute_name}" "professor" '
         else:  # students
-            query = f'site:linkedin.com/in "{institute_name}" "{degree_or_roll}" "{start_date}" '
+            query = f'site:linkedin.com/in "{institute_name}" "{degree_or_roll}" "{start_date}", "{end_date}" '
 
         # print("Query used is:", query)
         
@@ -374,6 +374,7 @@ def save_profile():
     profile_link = data.get("link")
     profile_type = data.get("type", "faculty")
     institute = data.get("institute", "Unknown Institution")
+    remark = data.get('remark', 'None')
     
     if not profile_name or not profile_link:
         return jsonify({"success": False, "error": "Missing profile data"})
@@ -396,7 +397,8 @@ def save_profile():
         "saved_by": session["email"],
         "saved_at": datetime.now(),
         "user_first_name": session.get("first_name"),
-        "user_last_name": session.get("last_name")
+        "user_last_name": session.get("last_name"),
+        'remark': remark
     }
     
     try:
@@ -484,6 +486,7 @@ def connection_search(query, search_type="students"):
             response = requests.get(GOOGLE_SEARCH_URL, params=params)
             response.raise_for_status()
             search_results = response.json()
+            # print(search_results)
             
             if "items" in search_results:
                 for item in search_results["items"]:
@@ -595,6 +598,102 @@ def logout():
     # Redirect to logout page
     return redirect(url_for("logout_complete"))
 
+from pprint import pprint
+
+@app.route('/send_profiles_list', methods=['POST'])
+def send_profiles_list():
+    try:
+        data = request.json
+        recipient_email = data.get('email')
+        subject = data.get('subject')
+        message = data.get('message')
+        profiles = data.get('profiles')
+
+        # Validate the data
+        if not recipient_email or not subject or not profiles:
+            return jsonify({"success": False, "error": "Missing required fields"})
+        
+        # Get current user information
+        user_role = session.get('role', '')
+        first_name = session.get('first_name', '')
+        last_name = session.get("last_name", "")
+        user_name = first_name + " " + last_name
+        user_email = session.get('email', '')
+        
+        # Determine user type for the heading
+        user_type = 'Student' if 'teacher' in user_role.lower() or 'professor' in user_role.lower() or 'principal' in user_role.lower() else 'Faculty'
+        
+        # Build the profiles as plain text
+        profiles_text = ""
+        for i, profile in enumerate(profiles, 1):
+            profiles_text += f"{i}. {profile['name']} - {profile['institute']} - {profile['Link']}\n"
+        
+        # Create a simple text email
+        plain_text = f"""
+Alumni Connect - {user_type} Profiles Shared
+
+Hello,
+
+{user_name} ({user_email}) has shared the following profiles with you via Alumni Connect:
+
+{message if message else ""}
+
+Profiles:
+{profiles_text}
+
+For more information, please log in to your Alumni Connect account.
+
+Best regards,
+Alumni Connect Team
+        """
+        
+        # Send email (using plain text instead of HTML)
+        send_email(recipient_email, subject, plain_text)
+        
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+# Helper function for sending emails
+from email.message import EmailMessage
+import ssl
+import smtplib
+
+
+def send_email(to, subject, html_content):
+    try:
+        email_sender = "mjadon624@gmail.com"
+        email_password = "rmgu lqxn lskm sjhn"
+        email_reciever = to
+
+
+        # subject = "Check out my new mail"
+
+        body = html_content
+
+        em = EmailMessage()
+
+        em["From"] = email_sender
+        em["To"] = email_reciever
+        em["Subject"] = subject
+
+        em.set_content(body)
+
+        context = ssl.create_default_context()
+
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465, context= context) as smtp:
+            smtp.login(email_sender, email_password)
+
+            smtp.sendmail("yugalsingh892@gmail.com",email_reciever,em.as_string())        
+        
+        # print(f"Email sent with status code: {response.status_code}")
+        return True
+    except Exception as e:
+        print(f"Email sending failed: {str(e)}")
+        return False
+    
+
+
 @app.route("/logout_complete")
 def logout_complete():
     """
@@ -618,4 +717,4 @@ def shutdown_executor():
     executor.shutdown(wait=False)
 
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)

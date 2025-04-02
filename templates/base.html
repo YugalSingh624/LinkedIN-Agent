@@ -1,26 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Alumni Connect{% endblock %}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Include Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Include Bootstrap JS with Popper.js -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Your own scripts after Bootstrap -->
+    <script src="path/to/your/profile.js"></script>
 </head>
+
 <body>
 
-<nav class="navbar navbar-dark bg-dark">
-    <div class="container">
-        <a class="navbar-brand" href="/">Alumni Connect</a>
-        {% if session.first_name %}
-        <a href="/logout" class="btn btn-danger">Logout</a>
-        {% endif %}
-    </div>
-</nav>
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">Alumni Connect</a>
+            {% if session.first_name %}
+            <a href="/logout" class="btn btn-danger">Logout</a>
+            {% endif %}
+        </div>
+    </nav>
 
-<div class="container mt-5">
-    {% block content %}{% endblock %}
-</div>
+    <div class="container mt-5">
+        {% block content %}{% endblock %}
+    </div>
 
 </body>
+
 </html>

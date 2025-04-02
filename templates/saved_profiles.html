@@ -2,7 +2,7 @@
 {% block title %}Saved Profiles{% endblock %}
 
 {% block content %}
-<div class="container py-5">
+<div class="container py-5" data-user-role="{{ session.get('role', '') }}">
     <div class="card shadow border-0 mb-5">
         <!-- Header -->
         <div class="card-header bg-warning text-dark" style="background: linear-gradient(135deg, #ffc107, #fd7e14);">
@@ -13,10 +13,21 @@
                     </h1>
                     <p class="lead mb-0 mt-1">Profiles you've saved for future reference</p>
                 </div>
-                <div class="col-auto">
+                <div class="col-auto" id="normalControls">
+                    <button id="startSelectionBtn" class="btn btn-outline-dark me-2">
+                        <i class="bi bi-share me-2"></i>Share Profiles
+                    </button>
                     <a href="{{ url_for('profile') }}" class="btn btn-outline-dark">
                         <i class="bi bi-arrow-left me-2"></i>Back to Profile
                     </a>
+                </div>
+                <div class="col-auto d-none" id="selectionControls">
+                    <button id="sendSelectedBtn" class="btn btn-success me-2">
+                        <i class="bi bi-envelope me-2"></i>Send Selected
+                    </button>
+                    <button id="cancelSelectionBtn" class="btn btn-outline-dark">
+                        <i class="bi bi-x-lg me-2"></i>Cancel
+                    </button>
                 </div>
             </div>
         </div>
@@ -45,7 +56,11 @@
                 <!-- Profiles Grid -->
                 <div class="row row-cols-1 row-cols-md-3 g-4" id="saved-profiles-container">
                     {% for profile in profiles %}
-                        <div class="col profile-card" data-profile-type="{{ profile.profile_type }}" data-profile-name="{{ profile.name|lower }}">
+                        <div class="col profile-card" 
+                             data-profile-type="{{ profile.profile_type }}" 
+                             data-profile-name="{{ profile.name }}"
+                             data-profile-id="{{ profile.link }}"
+                             data-profile-institute="{{ profile.institute }}">
                             <div class="card h-100 border-0 shadow-sm">
                                 <div class="card-body text-center">
                                     <div class="mb-3">
@@ -61,6 +76,10 @@
                                     <p class="card-text text-muted small mb-3">
                                         <i class="bi bi-calendar me-1"></i>Saved on {{ profile.saved_at.strftime('%b %d, %Y') }}
                                     </p>
+                                    <p class="card-text text-muted small mb-3">
+                                        <i class="bi bi-calendar me-1"></i>Remark : {{ profile.remark }}
+                                    </p>
+
                                     <div class="d-flex justify-content-between gap-2">
                                         <a href="{{ profile.link }}" target="_blank" class="btn btn-outline-primary btn-sm flex-grow-1">
                                             <i class="bi bi-linkedin me-1"></i>View Profile
@@ -69,12 +88,12 @@
                                             <i class="bi bi-trash"></i>❌
                                         </button>
                                     </div>
-                                    {% if session.get('role') in ['Teacher', 'Professor', 'Principal', 'teacher', 'professor', 'principal'] %}
+                                    <!-- {% if session.get('role') in ['Teacher', 'Professor', 'Principal', 'teacher', 'professor', 'principal'] %}
                                     <div class="mt-2">
                                         <a href="{{ url_for('invitation_coming_soon') }}" class="btn btn-success btn-sm w-100">
                                             <i class="bi bi-envelope me-1"></i>Send Invitation
                                         </a>
-                                    </div>
+                                    </div> -->
                                     {% endif %}
                                 </div>
                             </div>
@@ -109,6 +128,66 @@
         </div>
     </div>
 </div>
+
+<!-- Toast notification for email status -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="emailToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <i class="bi bi-envelope-check-fill text-success me-2"></i>
+            <strong class="me-auto">Email Sent</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+            Profiles list has been sent successfully!
+        </div>
+    </div>
+</div>
+
+<!-- Email Modal -->
+<div class="modal fade" id="emailModal" tabindex="-1" aria-labelledby="emailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="emailModalLabel">
+                    <i class="bi bi-envelope me-2"></i>Share Profiles via Email
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-5">
+                        <h6 class="mb-3">Selected Profiles:</h6>
+                        <ul class="list-group" id="selectedProfilesList">
+                            <!-- Selected profiles will be populated here -->
+                        </ul>
+                    </div>
+                    <div class="col-md-7">
+                        <div class="mb-3">
+                            <label for="emailAddress" class="form-label">Recipient Email Address</label>
+                            <input type="email" class="form-control" id="emailAddress" placeholder="email@example.com" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="emailSubject" class="form-label">Subject</label>
+                            <input type="text" class="form-control" id="emailSubject" 
+                                value="{% if session.get('role') in ['Teacher', 'Professor', 'Principal', 'teacher', 'professor', 'principal'] %}Interesting Student Profiles{% else %}Interesting Faculty Profiles{% endif %}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="emailMessage" class="form-label">Additional Message (Optional)</label>
+                            <textarea class="form-control" id="emailMessage" rows="4" placeholder="Add a personal message..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="sendProfilesList()">
+                    <i class="bi bi-send me-2"></i>Send Email
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- JavaScript for filtering and removing profiles -->
 <script src="{{ url_for('static', filename='saved_profile.js') }}"></script>
 {% endblock %}

@@ -38,6 +38,22 @@ document.addEventListener('DOMContentLoaded', function() {
             delay: 3000
         });
     });
+
+    // Add event listener for the save remark button in the modal
+    document.getElementById('saveRemarkBtn').addEventListener('click', function() {
+        const name = document.getElementById('remarkProfileName').value;
+        const link = document.getElementById('remarkProfileLink').value;
+        const type = document.getElementById('remarkProfileType').value;
+        const institute = document.getElementById('remarkProfileInstitute').value;
+        const remark = document.getElementById('profileRemark').value;
+        
+        // Save the profile with the remark
+        saveProfile(name, link, type, institute, remark);
+        
+        // Close the modal
+        const remarkModal = bootstrap.Modal.getInstance(document.getElementById('remarkModal'));
+        remarkModal.hide();
+    });
 });
 
 function startSearch(type, educationIndex) {
@@ -122,10 +138,18 @@ function displayResults(profiles, type, educationIndex) {
         const saveButtonClass = profile.is_saved ? 'btn-success' : 'btn-outline-success';
         const saveButtonIcon = profile.is_saved ? 'bi-bookmark-check-fill' : 'bi-bookmark-plus';
         const saveButtonText = profile.is_saved ? 'Saved' : 'Save Profile';
+        
+        // Update the action to open the remark modal for unsaved profiles
         const saveButtonAction = profile.is_saved ? 
             `onclick="removeProfile('${profile.name}', '${profile.link}')"` : 
-            `onclick="saveProfile('${profile.name}', '${profile.link}', '${type}', '${institute}')"`;
+            `onclick="openRemarkModal('${profile.name}', '${profile.link}', '${type}', '${institute}')"`;
         
+        // Add the remark display if profile has a remark
+        const remarkDisplay = profile.remark ? 
+            `<div class="mt-2 text-muted small border-top pt-2">
+                <strong>Note:</strong> ${profile.remark}
+            </div>` : '';
+
         col.innerHTML = `
             <div class="card h-100 border-0 shadow-lg" style="box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
                 <div class="card-body text-center">
@@ -133,7 +157,7 @@ function displayResults(profiles, type, educationIndex) {
                     <h5 class="mt-3 mb-3">${profile.name}</h5>
                     <div class="mt-3 d-flex flex-column gap-2">
                         <a href="${profile.link}" target="_blank" class="btn btn-outline-primary btn-sm">
-                            <i class="bi bi-person-badge me-2"></i>View Profile
+                            <i class="bi bi-person-badge me-2"></i>Add Connection
                         </a>
                         <button class="btn ${saveButtonClass} btn-sm save-profile-btn" 
                                 data-profile-name="${profile.name}" 
@@ -141,6 +165,7 @@ function displayResults(profiles, type, educationIndex) {
                                 ${saveButtonAction}>
                             <i class="bi ${saveButtonIcon} me-2"></i>${saveButtonText}
                         </button>
+                        ${remarkDisplay}
                     </div>
                 </div>
             </div>
@@ -152,7 +177,25 @@ function displayResults(profiles, type, educationIndex) {
     document.getElementById('alumni-content').style.display = 'block';
 }
 
-function saveProfile(name, link, type, institute) {
+function openRemarkModal(name, link, type, institute) {
+    // Set the values in the hidden fields
+    document.getElementById('remarkProfileName').value = name;
+    document.getElementById('remarkProfileLink').value = link;
+    document.getElementById('remarkProfileType').value = type;
+    document.getElementById('remarkProfileInstitute').value = institute;
+    
+    // Clear any previous remarks
+    document.getElementById('profileRemark').value = '';
+    
+    // Set the profile name in the modal title
+    document.getElementById('remarkModalLabel').innerHTML = `Add a Remark for ${name}`;
+    
+    // Show the modal
+    const remarkModal = new bootstrap.Modal(document.getElementById('remarkModal'));
+    remarkModal.show();
+}
+
+function saveProfile(name, link, type, institute, remark = '') {
     fetch('/save_profile', {
         method: 'POST',
         headers: {
@@ -162,18 +205,38 @@ function saveProfile(name, link, type, institute) {
             name: name,
             link: link,
             type: type,
-            institute: institute
+            institute: institute,
+            remark: remark  // Add remark to the request body
         })
-    })
+    })  
     .then(response => response.json())
     .then(data => {
         if (data.success) {
             // Update the button to show it's saved
             const buttons = document.querySelectorAll(`.save-profile-btn[data-profile-link="${link}"]`);
             buttons.forEach(button => {
+                const parentCard = button.closest('.card-body');
+                
+                // Update button appearance
                 button.className = 'btn btn-success btn-sm save-profile-btn';
                 button.innerHTML = '<i class="bi bi-bookmark-check-fill me-2"></i>Saved';
                 button.onclick = () => removeProfile(name, link);
+                
+                // Add remark to the card if provided
+                if (remark && remark.trim() !== '') {
+                    // Check if remark display already exists
+                    let remarkDisplay = parentCard.querySelector('.text-muted.small.border-top');
+                    if (!remarkDisplay) {
+                        // Create a new remark display
+                        remarkDisplay = document.createElement('div');
+                        remarkDisplay.className = 'mt-2 text-muted small border-top pt-2';
+                        remarkDisplay.innerHTML = `<strong>Note:</strong> ${remark}`;
+                        parentCard.querySelector('.d-flex.flex-column').appendChild(remarkDisplay);
+                    } else {
+                        // Update existing remark display
+                        remarkDisplay.innerHTML = `<strong>Note:</strong> ${remark}`;
+                    }
+                }
             });
             
             // Show success toast
@@ -210,6 +273,9 @@ function removeProfile(name, link) {
             // Update the button to show it's not saved
             const buttons = document.querySelectorAll(`.save-profile-btn[data-profile-link="${link}"]`);
             buttons.forEach(button => {
+                const parentCard = button.closest('.card-body');
+                
+                // Update button appearance
                 button.className = 'btn btn-outline-success btn-sm save-profile-btn';
                 button.innerHTML = '<i class="bi bi-bookmark-plus me-2"></i>Save Profile';
                 
@@ -222,7 +288,14 @@ function removeProfile(name, link) {
                 const institutionElements = document.querySelectorAll('.institution-name');
                 const institute = institutionElements[educationIndex] ? institutionElements[educationIndex].textContent : '';
                 
-                button.onclick = () => saveProfile(name, link, type, institute);
+                // Update button click handler to open remark modal
+                button.onclick = () => openRemarkModal(name, link, type, institute);
+                
+                // Remove any remark display
+                const remarkDisplay = parentCard.querySelector('.text-muted.small.border-top');
+                if (remarkDisplay) {
+                    remarkDisplay.remove();
+                }
             });
             
             // Update toast message

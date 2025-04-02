@@ -87,53 +87,12 @@
                         </div>
                     </div>
                 </div>
-                <!-- Connection Options Section -->
-            
-                <div class="row row-cols-1 row-cols-md-3 g-4">
-                  <div class="col">
-                    <div class="card h-100 border-0 shadow-sm connection-option" data-type="faculty">
-                      <div class="card-body text-center p-4 d-flex flex-column">
-                        <i class="bi bi-person-workspace text-primary mb-3" style="font-size: 3rem;"></i>
-                        <h3 class="card-title">Faculty</h3>
-                        <p class="card-text">Connect with professors and teachers from your institution</p>
-                        <div class="mt-auto">
-                          <button class="btn btn-primary select-connection-btn" data-type="faculty">
-                            <i class="bi bi-search me-2"></i>Find Faculty
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="col">
-                    <div class="card h-100 border-0 shadow-sm connection-option" data-type="students">
-                      <div class="card-body text-center p-4 d-flex flex-column">
-                        <i class="bi bi-mortarboard text-primary mb-3" style="font-size: 3rem;"></i>
-                        <h3 class="card-title">Students</h3>
-                        <p class="card-text">Connect with fellow students and alumni from your institution</p>
-                        <div class="mt-auto">
-                          <button class="btn btn-primary select-connection-btn" data-type="students">
-                            <i class="bi bi-search me-2"></i>Find Students
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="col">
-                    <div class="card h-100 border-0 shadow-sm">
-                      <div class="card-body text-center p-4 d-flex flex-column">
-                        <i class="bi bi-bookmark-star-fill text-warning mb-3" style="font-size: 3rem;"></i>
-                        <h3 class="card-title">Saved Profiles</h3>
-                        <p class="card-text">View profiles you've saved for later</p>
-                        <div class="mt-auto">
-                          <a href="{{ url_for('saved_profiles') }}" class="btn btn-warning">
-                            <i class="bi bi-bookmark-check me-2"></i>View Saved Profiles
-                          </a>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                
+                <!-- Dynamic Connection Cards -->
+                <div class="row row-cols-1 row-cols-md-3 g-4" id="connection-cards">
+                    <!-- Cards will be dynamically populated via JavaScript -->
                 </div>
-              </div>
+            </div>
 
             <!-- Alumni/Connection Results Section -->
             <div>
@@ -176,6 +135,34 @@
     </div>
 </div>
 
+<!-- Modal for adding remarks -->
+<div class="modal fade" id="remarkModal" tabindex="-1" aria-labelledby="remarkModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="remarkModalLabel">Add a Remark</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="remarkForm">
+                    <div class="mb-3">
+                        <label for="profileRemark" class="form-label">Add a note about this profile:</label>
+                        <textarea class="form-control" id="profileRemark" rows="3" placeholder="e.g., Met at conference, Potential research collaborator, etc."></textarea>
+                    </div>
+                    <input type="hidden" id="remarkProfileName">
+                    <input type="hidden" id="remarkProfileLink">
+                    <input type="hidden" id="remarkProfileType">
+                    <input type="hidden" id="remarkProfileInstitute">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveRemarkBtn">Save Profile</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Toast notification for save status -->
 <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
     <div id="saveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
@@ -190,6 +177,76 @@
     </div>
 </div>
 
-<!-- JavaScript to handle the asynchronous loading of alumni data -->
+<!-- Dynamic Card Ordering Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const userRole = "{{ session.get('role', '').lower() }}";
+    const connectionCardsContainer = document.getElementById('connection-cards');
+
+    const connectionCards = [
+        {
+            type: 'faculty',
+            icon: 'bi-person-workspace',
+            title: 'Faculty',
+            description: 'Connect with professors and teachers from your institution',
+            buttonText: 'Find Faculty'
+        },
+        {
+            type: 'students',
+            icon: 'bi-mortarboard',
+            title: 'Students',
+            description: 'Connect with students and alumni from your institution',
+            buttonText: 'Find Students'
+        },
+        {
+            type: 'saved',
+            icon: 'bi-bookmark-star-fill',
+            title: 'Saved Profiles',
+            description: 'View profiles you\'ve saved for later',
+            buttonText: 'View Saved Profiles',
+            link: "{{ url_for('saved_profiles') }}"
+        }
+    ];
+
+    // Reorder cards based on user role
+    let orderedCards = connectionCards;
+    if (['teacher', 'professor', 'principal'].includes(userRole)) {
+        // For teachers, swap faculty and students
+        orderedCards = [
+            connectionCards[1],  // Students card
+            connectionCards[0],  // Faculty card
+            connectionCards[2]   // Saved Profiles card
+        ];
+    }
+
+    // Render cards
+    orderedCards.forEach(card => {
+        const cardElement = document.createElement('div');
+        cardElement.className = 'col';
+        cardElement.innerHTML = `
+            <div class="card h-100 border-0 shadow-sm connection-option" data-type="${card.type}">
+                <div class="card-body text-center p-4 d-flex flex-column">
+                    <i class="bi ${card.icon} text-primary mb-3" style="font-size: 3rem;"></i>
+                    <h3 class="card-title">${card.title}</h3>
+                    <p class="card-text">${card.description}</p>
+                    <div class="mt-auto">
+                        ${card.link ? 
+                            `<a href="${card.link}" class="btn btn-warning">
+                                <i class="bi bi-bookmark-check me-2"></i>${card.buttonText}
+                            </a>` : 
+                            `<button class="btn btn-primary select-connection-btn" data-type="${card.type}">
+                                <i class="bi bi-search me-2"></i>${card.buttonText}
+                            </button>`
+                        }
+                    </div>
+                </div>
+            </div>
+        `;
+        connectionCardsContainer.appendChild(cardElement);
+    });
+});
+</script>
+
+<!-- Existing profile.js script -->
 <script src="{{ url_for('static', filename='profile.js') }}"></script>
 {% endblock %}
