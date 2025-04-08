@@ -3,6 +3,7 @@ import requests
 import os
 import re
 import pymongo
+import uuid
 from bson.objectid import ObjectId
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
@@ -16,6 +17,8 @@ app = Flask(__name__)
 app.secret_key = os.getenv("secret_key")  # Change this in production
 # app.secret_key = "your_secret_key"
 #lix_it_api
+
+BASE_URL = os.getenv("BASE_URL") # for invitation
 
 lix_it_api = os.getenv("lix_it_key")
 
@@ -66,11 +69,20 @@ def home():
         # Clear any remaining session data
         session.clear()
     
+    # Get invite token if present
+    invite_token = request.args.get("invite")
+    
+    if invite_token:
+        # Store in session temporarily
+        session["invite_token"] = invite_token
+    
     linkedin_auth_url = (
         f"{AUTH_URL}?response_type=code&client_id={CLIENT_ID}"
         f"&redirect_uri={REDIRECT_URI}&scope=openid%20profile%20email"
     )
-    return render_template("index.html", linkedin_auth_url=linkedin_auth_url)
+    
+    # Pass the invite status to the template
+    return render_template("index.html", linkedin_auth_url=linkedin_auth_url, invite=bool(invite_token))
 
 @app.route("/handle_login", methods=["POST"])
 def handle_login():
@@ -78,70 +90,83 @@ def handle_login():
     Handles form-based login from index.html.
     """
     education = request.form.get("name")
-    # add_info = request.form.get("email")
     role = request.form.get("role")  # Get the user's role
 
-    if not education  or not role:
+    if not education or not role:
         flash("Please enter all required information.", "danger")
         return redirect(url_for("home"))
 
     # Store in session
     session["education"] = education
-    # session["add_info"] = add_info
     session["role"] = role  # Store the role in the session
-
-    # print(session["education"])
-    # print(session["add_info"])
-    # print(session["role"])  # Log the role
-
+    
+    # Check if this login was from an invitation
+    invite_token = session.get("invite_token")
+    
     flash("Login successful!", "success")
     return redirect(
         f"{AUTH_URL}?response_type=code&client_id={CLIENT_ID}"
         f"&redirect_uri={REDIRECT_URI}&scope=openid%20profile%20email"
     )
 
-def perform_connection_search(user_id, institute_name, degree_or_roll, search_type, start_date, end_date):
+def perform_connection_search(user_id, name, role, search_key, start_date, end_date, location=" ", is_teacher=False):
     """
     Background task to perform connection search based on type
-
     """
-    # print("Searched for:", search_type)
-
     try:
-        # If we have multiple education entries, use the first one for search
-        if isinstance(institute_name, list):
-            institute_name = institute_name[0]
-            
-        if "faculty" in search_type:
-            query = f'site:linkedin.com/in "{institute_name}" "professor" '
-        else:  # students
-            query = f'site:linkedin.com/in "{institute_name}" "{degree_or_roll}" "{start_date}", "{end_date}" '
+        # If we have multiple entries, use the first one for search
+        if isinstance(name, list):
+            name = name[0]
+        
+        if location == "N/A":
+            location = ""
 
-        # print("Query used is:", query)
+        # Build query based on whether it's a teacher (experience-based) or student (education-based)
+        if is_teacher:
+            # For teachers searching based on organization experience
+            if "faculty" in search_key:
+                # Looking for faculty members in the same organization
+                query = f'site:linkedin.com/in "{name}" "{role}" "{location}"'
+            else:
+                # Looking for students/alumni who might be connected to this organization
+                query = f'site:linkedin.com/in "{name}"  "Student" "{location}"'
+        else:
+            # For students searching based on education
+            if "faculty" in search_key:
+                query = f'site:linkedin.com/in "{name}" "professor"'
+            else:  # students
+                query = f'site:linkedin.com/in "{name}" "{role}" "{start_date}" "{end_date}"'
         
         # Pass the search_type to connection_search
-        urls = connection_search(query, search_type)
-        # print("These are urls: ", urls)
+
+        print("Query is:", query)
+        
+        urls = connection_search(query, search_key)
+
+        # print("Urls Are: ", urls)
         
         results = []
         for url in urls:
-            name = extract_name_from_url(url)
+            profile_name = extract_name_from_url(url)
             results.append({
-                "name": name,
+                "name": profile_name,
                 "link": url,
-                "profile_type": search_type,
-                "institute": institute_name
+                "profile_type": "faculty" if "faculty" in search_key else "student",
+                "institute": name  # This will be either institution name or organization name
             })
         
         # Store the results in the background_tasks dictionary
-        background_tasks[user_id][search_type] = {
+        background_tasks[user_id][search_key] = {
             "completed": True,
             "results": results
         }
+
+
+        print("Final Profiles are:", results)
     except Exception as e:
         print(f"Error in search thread: {e}")
         # Make sure we mark as completed even on error
-        background_tasks[user_id][search_type] = {
+        background_tasks[user_id][search_key] = {
             "completed": True,
             "results": [],
             "error": str(e)
@@ -193,32 +218,12 @@ def callback():
         session["last_name"] = profile_data.get("family_name", "Unknown")
         session["email"] = profile_data.get("email", "Not Available")
         
-        
-        # For LinkedIn URL search, use the first institution if multiple are present
-        # session["linkedin_url"] = search_linkedin_profile_advanced(
-        #     session["first_name"], 
-        #     session["last_name"],
-        #     session["education"],
-        #     session["add_info"]
-        # )
         session["linkedin_url"] = session["education"]
 
-
-        # print("The Linked Profile is:",session["linkedin_url"])
-        # Directly assign the education details from the provided JSON
-        education_details = fetch_education_details(session["linkedin_url"])
-        # This now accepts a list of education entries
-        # education_details = [
-        #     {'Degree': "Bachelor's degree", 'Field_of_study': 'Human, Social & Political Sciences', 
-        #      'InstitutionName': 'University of Cambridge', 
-        #      'TimePeriod': {'endedOn': {'year': 2016}, 'startedOn': {'year': 2013}}},
-        #     {'Degree': 'Access Diploma', 'Field_of_study': 'Mixed Media', 
-        #      'InstitutionName': 'City and Islington College', 
-        #      'TimePeriod': {'endedOn': {'year': 2013}, 'startedOn': {'year': 2012}}},
-        # ]
+        # Fetch education and experience details
+        education_details, experience_details = fetch_education_experience_details(session["linkedin_url"])
         session["education_details"] = education_details
-        
-
+        session["experience_details"] = experience_details
 
         # Generate a unique user ID for tracking the background task
         user_id = str(hash(f"{session['first_name']}{session['last_name']}{session['email']}"))
@@ -234,13 +239,59 @@ def callback():
 
         # Initialize background tasks for this user
         background_tasks[user_id] = {}
+        
+        # Now check if there was an invite token and process it
+        invite_token = session.pop("invite_token", None)
+        
+        if invite_token:
+            try:
+                # Find the invitation in database
+                invite = db.invites.find_one({'token': invite_token, 'used': False})
+                
+                if invite:
+                    # Record this as a successful referral in the user's profile
+                    db.users.update_one(
+                        {'user_id': user_id}, 
+                        {
+                            '$set': {
+                                'referred_by': invite['created_by'],
+                                'referral_date': datetime.now()
+                            }
+                        },
+                        upsert=True  # Create user record if it doesn't exist
+                    )
+                    
+                    # Mark the invite as used
+                    db.invites.update_one(
+                        {'token': invite_token}, 
+                        {
+                            '$set': {
+                                'used': True, 
+                                'used_by': user_id,
+                                'used_by_name': f"{session['first_name']} {session['last_name']}",
+                                'used_at': datetime.now()
+                            }
+                        }
+                    )
+                    
+                    # Increment a referral count for the inviter
+                    db.users.update_one(
+                        {'user_id': invite['created_by']}, 
+                        {'$inc': {'referral_count': 1}}
+                    )
+                    
+                    # Store a flash message to show on the profile page
+                    flash("You've joined via an invitation. Welcome to our platform!", "success")
+            except Exception as e:
+                # Log the error but don't interrupt the user flow
+                print(f"Error processing invite token: {e}")
 
         return redirect(url_for("profile"))
 
     except requests.exceptions.RequestException as e:
         return f"LinkedIn API Error: {e}", 500
 
-def fetch_education_details(profile_link):
+def fetch_education_experience_details(profile_link):
     url = f"https://api.lix-it.com/v1/person?profile_link={profile_link}"
 
     payload={}
@@ -259,16 +310,76 @@ def fetch_education_details(profile_link):
             'TimePeriod': education_item.get('timePeriod', '')
         })
 
-    return education_details
+    
+    linkedin_data = response.json()
+    experiences = linkedin_data.get('experience', [])
+    
+    # Create an empty list to store the experience dictionaries
+    experience_details = []
+    
+    for exp in experiences:
+        # Extract details
+        org_name = exp.get('organisation', {}).get('name', ' ')
+        location = exp.get('location', ' ')
+        title = exp.get('title', ' ')
+        
+        # Extract time period
+        time_period = exp.get('timePeriod', {})
+        start_info = time_period.get('startedOn', {})
+        end_info = time_period.get('endedOn', {})
+        
+        # Format start date
+        if start_info:
+            start_month = start_info.get('month', '')
+            start_year = start_info.get('year', '')
+            if start_month and start_year:
+                start_date = f"{start_month}/{start_year}"
+            elif start_year:
+                start_date = str(start_year)
+            else:
+                start_date = ' '
+        else:
+            start_date = ' '
+        
+        # Format end date
+        if not end_info:  # Empty dictionary
+            end_date = 'Present'
+        else:
+            end_month = end_info.get('month', '')
+            end_year = end_info.get('year', '')
+            if end_month and end_year:
+                end_date = f"{end_month}/{end_year}"
+            elif end_year:
+                end_date = str(end_year)
+            else:
+                end_date = ' '
+        
+        # Create a dictionary for this experience
+        experience_dict = {
+            'Title': title,
+            'Organization': org_name,
+            'Location': location,
+            'StartDate': start_date,
+            'EndDate': end_date
+        }
+        
+        # Add the dictionary to our list
+        experience_details.append(experience_dict)
+
+    return education_details, experience_details
 
 @app.route("/start_search")
 def start_search():
     """
-    Starts a new search for connections based on type and selected education
+    Starts a new search for connections based on type and selected education or experience
     """
     search_type = request.args.get("type", "faculty")  # Default to faculty
-    education_index = int(request.args.get("education_index", 0))  # Default to first education
+    education_index = int(request.args.get("education_index", 0))  # Default to first education/experience
     user_id = session.get("user_id")
+    user_role = session.get("role", "").lower()
+    is_teacher = user_role in ["teacher", "professor", "principal"]
+
+    print("Value of Is teacher is:", is_teacher)
     
     if not user_id:
         return jsonify({"success": False, "error": "Not logged in"})
@@ -291,32 +402,69 @@ def start_search():
         "results": []
     }
     
-    # Get search parameters
-    education_details = session.get("education_details", [])
-    
-    # Use the selected education index for searching if it's valid
-    if education_index < len(education_details):
-        selected_education = education_details[education_index]
-        institute_name = selected_education.get("InstitutionName", "Unknown Institution")
-        degree_or_roll = selected_education.get("Degree", "Student")
-        start_date = selected_education.get("TimePeriod", "").get("startedOn", "").get("year", "")
-        end_date = selected_education.get("TimePeriod", "").get("endedOn", "").get("year", "")
-    else:
-        # Fallback to first education if index is invalid
-        institute_name = education_details[0].get("InstitutionName", "Unknown Institution") if education_details else "Unknown Institution"
-        degree_or_roll = education_details[0].get("Degree", "Student") if education_details else "Student"
-    
-    # Submit the task to the thread pool
-    executor.submit(
-        perform_connection_search,
-        user_id, 
-        institute_name, 
-        degree_or_roll, 
-        search_key , # Use the combined key so we can store different searches
-        start_date,
-        end_date
+    # Get search parameters based on user role
+    if is_teacher:
+        # For teachers, use experience details
+        experience_details = session.get("experience_details", [])
         
-    )
+        # Use the selected experience index for searching if it's valid
+        if education_index < len(experience_details):
+            selected_experience = experience_details[education_index]
+            organization_name = selected_experience.get("Organization", "Unknown Organization")
+            job_title = selected_experience.get("Title", "Employee")
+            start_date = selected_experience.get("StartDate", "")
+            end_date = selected_experience.get("EndDate", "Present")
+            location = selected_experience.get("Location", "")
+        else:
+            # Fallback to first experience if index is invalid
+            organization_name = experience_details[0].get("Organization", "Unknown Organization") if experience_details else "Unknown Organization"
+            job_title = experience_details[0].get("Title", "Employee") if experience_details else "Employee"
+            start_date = experience_details[0].get("StartDate", "") if experience_details else ""
+            end_date = experience_details[0].get("EndDate", "Present") if experience_details else "Present"
+            location = experience_details[0].get("Location", "") if experience_details else ""
+        
+        # Submit the task to the thread pool for experience-based search
+        executor.submit(
+            perform_connection_search,
+            user_id, 
+            organization_name,
+            job_title, 
+            search_key,
+            start_date,
+            end_date,
+            location,
+            is_teacher
+        )
+    else:
+        # For students, use education details as before
+        education_details = session.get("education_details", [])
+        
+        # Use the selected education index for searching if it's valid
+        if education_index < len(education_details):
+            selected_education = education_details[education_index]
+            institute_name = selected_education.get("InstitutionName", "Unknown Institution")
+            degree_or_roll = selected_education.get("Degree", "Student")
+            start_date = selected_education.get("TimePeriod", {}).get("startedOn", {}).get("year", "")
+            end_date = selected_education.get("TimePeriod", {}).get("endedOn", {}).get("year", "")
+        else:
+            # Fallback to first education if index is invalid
+            institute_name = education_details[0].get("InstitutionName", "Unknown Institution") if education_details else "Unknown Institution"
+            degree_or_roll = education_details[0].get("Degree", "Student") if education_details else "Student"
+            start_date = education_details[0].get("TimePeriod", {}).get("startedOn", {}).get("year", "") if education_details else ""
+            end_date = education_details[0].get("TimePeriod", {}).get("endedOn", {}).get("year", "") if education_details else ""
+        
+        # Submit the task to the thread pool for education-based search
+        executor.submit(
+            perform_connection_search,
+            user_id, 
+            institute_name, 
+            degree_or_roll, 
+            search_key,
+            start_date,
+            end_date,
+            "",  # No location for education-based search
+            is_teacher
+        )
     
     return jsonify({"success": True, "search_key": search_key})
 
@@ -375,6 +523,7 @@ def save_profile():
     profile_type = data.get("type", "faculty")
     institute = data.get("institute", "Unknown Institution")
     remark = data.get('remark', 'None')
+    saved_by_role = session.get('role', '').lower()
     
     if not profile_name or not profile_link:
         return jsonify({"success": False, "error": "Missing profile data"})
@@ -398,7 +547,8 @@ def save_profile():
         "saved_at": datetime.now(),
         "user_first_name": session.get("first_name"),
         "user_last_name": session.get("last_name"),
-        'remark': remark
+        'remark': remark,
+        'saved_by_role': saved_by_role
     }
     
     try:
@@ -443,12 +593,16 @@ def saved_profiles():
     """
     Display saved profiles for the current user
     """
+
+    user_role = session.get('role', '').lower()
+
     if "email" not in session:
         flash("Please log in first.", "warning")
         return redirect(url_for("home"))
     
     try:
-        profiles = list(saved_profiles_collection.find({"saved_by": session["email"]}))
+        profiles = list(saved_profiles_collection.find({"saved_by": session["email"],
+                                                        'saved_by_role': user_role}))
         # Convert ObjectId to string for JSON serialization
         for profile in profiles:
             profile["_id"] = str(profile["_id"])
@@ -710,6 +864,39 @@ def logout_complete():
     
     # Pass the token to the template
     return render_template("logout.html", token=token)
+
+
+@app.route('/generate_invite_link', methods=['POST'])
+def generate_invite_link():
+    try:
+        # Get current user info from session
+        user_id = session.get("user_id")
+        user_name = f"{session.get('first_name', '')} {session.get('last_name', '')}"
+        
+        if not user_id:
+            return jsonify({'success': False, 'error': 'User not authenticated'})
+        
+        # Generate a unique token
+        invite_token = str(uuid.uuid4())[:8]  # Using first 8 chars for shorter URL
+        
+        # Store the invite in your database
+        db.invites.insert_one({
+            'token': invite_token,
+            'created_by': user_id,
+            'created_by_name': user_name,
+            'created_at': datetime.now(),
+            'used': False
+        })
+        
+        # Create the full invite URL
+        invite_link = f"{BASE_URL}/?invite={invite_token}"
+        
+        return jsonify({
+            'success': True,
+            'inviteLink': invite_link
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 # Clean up executor when app exits
 @atexit.register

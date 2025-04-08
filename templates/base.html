@@ -26,6 +26,48 @@
             <a href="/logout" class="btn btn-danger">Logout</a>
             {% endif %}
         </div>
+
+        <!-- Invite Button -->
+        <button class="btn btn-primary" onclick="generateInviteLink()">
+            <i class="bi bi-person-plus me-2"></i>Invite Friends
+        </button>
+
+        <!-- Invite Modal -->
+        <div class="modal fade" id="shareInviteModal" tabindex="-1" aria-labelledby="shareInviteModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="shareInviteModalLabel">Invite Friends</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Share this link with your friends to invite them to join our platform:</p>
+                        <div class="input-group mb-3">
+                            <input type="text" class="form-control" id="inviteLink" readonly>
+                            <button class="btn btn-outline-secondary" type="button"
+                                onclick="copyInviteLink()">Copy</button>
+                        </div>
+                        <div class="alert alert-success d-none" id="copyConfirmation">Link copied to clipboard!</div>
+
+                        <div class="d-grid gap-2 mt-3">
+                            <button type="button" class="btn btn-success" onclick="shareViaWhatsApp()">
+                                <i class="bi bi-whatsapp me-2"></i>Share via WhatsApp
+                            </button>
+
+                            <!-- Share via other means using Web Share API if available -->
+                            <button type="button" class="btn btn-primary"
+                                onclick="navigator.share && navigator.share({url: document.getElementById('inviteLink').value, title: 'Join me on this platform!'})">
+                                <i class="bi bi-share me-2"></i>Share via Other Apps
+                            </button>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </nav>
 
     <div class="container mt-5">
@@ -33,5 +75,51 @@
     </div>
 
 </body>
+
+<script>
+    // Function to generate an invite link
+    function generateInviteLink() {
+        fetch('/generate_invite_link', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({})
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('inviteLink').value = data.inviteLink;
+                    const shareModal = new bootstrap.Modal(document.getElementById('shareInviteModal'));
+                    shareModal.show();
+                } else {
+                    alert('Failed to generate invite link: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error generating invite link:', error);
+            });
+    }
+
+    // Function to share via WhatsApp
+    function shareViaWhatsApp() {
+        const inviteLink = document.getElementById('inviteLink').value;
+        const message = encodeURIComponent(`Join me on this platform! ${inviteLink}`);
+        window.open(`https://wa.me/?text=${message}`, '_blank');
+    }
+
+    // Function to copy invite link to clipboard
+    function copyInviteLink() {
+        const inviteLink = document.getElementById('inviteLink');
+        inviteLink.select();
+        document.execCommand('copy');
+
+        // Show copy confirmation
+        document.getElementById('copyConfirmation').classList.remove('d-none');
+        setTimeout(() => {
+            document.getElementById('copyConfirmation').classList.add('d-none');
+        }, 2000);
+    }
+</script>
 
 </html>

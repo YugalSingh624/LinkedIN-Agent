@@ -9,14 +9,14 @@
             <div class="row align-items-center py-4 text-center text-md-start">
                 <div class="col-auto">
                     <div class="p-2 rounded-circle bg-white" style="display: inline-block;">
-                        <img src="{{ session.get('profile_picture.jpg', url_for('static', filename='profile_picture.jpg')) }}" 
-                             alt="Profile Picture" 
-                             class="img-fluid rounded-circle border border-white" 
-                             style="width: 120px; height: 120px; object-fit: cover; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">
+                        <img src="{{ session.get('profile_picture.jpg', url_for('static', filename='profile_picture.jpg')) }}"
+                            alt="Profile Picture" class="img-fluid rounded-circle border border-white"
+                            style="width: 120px; height: 120px; object-fit: cover; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">
                     </div>
                 </div>
                 <div class="col">
-                    <h1 class="display-5 mb-0 fw-bold">{{ session.get("first_name", "User") }} {{ session.get("last_name", "") }}</h1>
+                    <h1 class="display-5 mb-0 fw-bold">{{ session.get("first_name", "User") }} {{
+                        session.get("last_name", "") }}</h1>
                     <p class="lead mb-0 mt-1">
                         <i class="bi bi-envelope-fill me-2"></i>{{ session.get("email", "Not Available") }}
                     </p>
@@ -28,34 +28,65 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="card-body p-4">
             <!-- Education Section -->
+            <!-- Change around line 50, replace the Education Section -->
+            <!-- Education/Experience Section based on role -->
             <div class="mb-5">
+                {% if session.get('role', '').lower() in ['teacher', 'professor', 'principal'] %}
+                <h2 class="border-bottom pb-2 mb-4 text-primary">
+                    <i class="bi bi-briefcase-fill me-2"></i>Experience
+                </h2>
+
+                {% if session.get("experience_details") %}
+                {% for exp in session["experience_details"] %}
+                <div class="card mb-3 border-0 shadow-sm experience-card" data-exp-index="{{ loop.index0 }}">
+                    <div class="card-body">
+                        <h4 class="card-title text-primary organization-name">{{ exp.get("Organization", " ") }}</h4>
+                        <h5 class="card-subtitle mb-2 text-muted">{{ exp.get("Title", " ") }}</h5>
+                        <p class="card-text text-muted">{{ exp.get("Location", " ") }}</p>
+
+                        <div class="badge bg-secondary mb-3">
+                            {{ exp.get("StartDate", " ") }} -
+                            {{ exp.get("EndDate", "Present") if not exp.get("EndDate") else exp.get("EndDate") }}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle-fill me-2"></i>No experience details available.
+                </div>
+                {% endif %}
+                {% else %}
                 <h2 class="border-bottom pb-2 mb-4 text-primary">
                     <i class="bi bi-mortarboard-fill me-2"></i>Education
                 </h2>
-                
+
                 {% if session.get("education_details") %}
-                    {% for edu in session["education_details"] %}
-                        <div class="card mb-3 border-0 shadow-sm education-card" data-edu-index="{{ loop.index0 }}">
-                            <div class="card-body">
-                                <h4 class="card-title text-primary institution-name">{{ edu.get("InstitutionName", "N/A") }}</h4>
-                                <h5 class="card-subtitle mb-2 text-muted">{{ edu.get("Degree", "N/A") }} in {{ edu.get("Field_of_study", "N/A") }}</h5>
-                                
-                                {% if edu.get("TimePeriod") %}
-                                    <div class="badge bg-secondary mb-3">
-                                        {{ edu["TimePeriod"].get("startedOn", {}).get("year", "N/A") }} - 
-                                        {{ edu["TimePeriod"].get("endedOn", {}).get("year", "N/A") }}
-                                    </div>
-                                {% endif %}
-                            </div>
+                {% for edu in session["education_details"] %}
+                <div class="card mb-3 border-0 shadow-sm education-card" data-edu-index="{{ loop.index0 }}">
+                    <div class="card-body">
+                        <h4 class="card-title text-primary institution-name">{{ edu.get("InstitutionName", " ") }}
+                        </h4>
+                        <h5 class="card-subtitle mb-2 text-muted">{{ edu.get("Degree", " ") }} in {{
+                            edu.get("Field_of_study", " ") }}</h5>
+
+                        {% if edu.get("TimePeriod") %}
+                        <div class="badge bg-secondary mb-3">
+                            {{ edu["TimePeriod"].get("startedOn", {}).get("year", " ") }} -
+                            {{ edu["TimePeriod"].get("endedOn", {}).get("year", " ") }}
                         </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle-fill me-2"></i>No education details available.
+                        {% endif %}
                     </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle-fill me-2"></i>No education details available.
+                </div>
+                {% endif %}
                 {% endif %}
             </div>
 
@@ -64,30 +95,49 @@
                 <h2 class="border-bottom pb-2 mb-4 text-primary">
                     <i class="bi bi-people-fill me-2"></i>Connect With Your Network
                 </h2>
-                
+
                 <!-- Education Selection Dropdown -->
+                <!-- Change around line 79, update the "Education Selection Dropdown" section -->
+                <!-- Education/Experience Selection Dropdown -->
                 <div class="row mb-4">
                     <div class="col-md-8">
                         <div class="card border-0 shadow-sm">
                             <div class="card-body">
-                                <h5 class="card-title">Select Education for Network Search</h5>
-                                <p class="card-text">Choose which educational institution to search for connections from:</p>
+                                {% if session.get('role', '').lower() in ['teacher', 'professor', 'principal'] %}
+                                <h5 class="card-title">Select Experience for Network Search</h5>
+                                <p class="card-text">Choose which organization to search for connections from:</p>
                                 <select class="form-select form-select-lg mb-3" id="education-selector">
-                                    {% if session.get("education_details") %}
-                                        {% for edu in session["education_details"] %}
-                                            <option value="{{ loop.index0 }}">
-                                                {{ edu.get("InstitutionName", "N/A") }} - {{ edu.get("Degree", "N/A") }}
-                                            </option>
-                                        {% endfor %}
+                                    {% if session.get("experience_details") %}
+                                    {% for exp in session["experience_details"] %}
+                                    <option value="{{ loop.index0 }}">
+                                        {{ exp.get("Organization", " ") }} - {{ exp.get("Title", " ") }}
+                                    </option>
+                                    {% endfor %}
                                     {% else %}
-                                        <option value="0">No education details available</option>
+                                    <option value="0">No experience details available</option>
                                     {% endif %}
                                 </select>
+                                {% else %}
+                                <h5 class="card-title">Select Education for Network Search</h5>
+                                <p class="card-text">Choose which educational institution to search for connections
+                                    from:</p>
+                                <select class="form-select form-select-lg mb-3" id="education-selector">
+                                    {% if session.get("education_details") %}
+                                    {% for edu in session["education_details"] %}
+                                    <option value="{{ loop.index0 }}">
+                                        {{ edu.get("InstitutionName", " ") }} - {{ edu.get("Degree", " ") }}
+                                    </option>
+                                    {% endfor %}
+                                    {% else %}
+                                    <option value="0">No education details available</option>
+                                    {% endif %}
+                                </select>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Dynamic Connection Cards -->
                 <div class="row row-cols-1 row-cols-md-3 g-4" id="connection-cards">
                     <!-- Cards will be dynamically populated via JavaScript -->
@@ -99,7 +149,7 @@
                 <h2 class="border-bottom pb-2 mb-4 text-primary" id="results-heading">
                     <i class="bi bi-list-ul me-2"></i>Search Results
                 </h2>
-                
+
                 <!-- Loading spinner that will be shown while data is being fetched -->
                 <div id="alumni-loading" class="text-center py-5" style="display: none;">
                     <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
@@ -108,13 +158,13 @@
                     <h4 class="text-muted">Loading profiles...</h4>
                     <p class="text-muted">This may take a few moments</p>
                 </div>
-                
+
                 <!-- No selection message -->
                 <div id="no-selection" class="text-center py-5">
                     <i class="bi bi-arrow-up-circle text-muted" style="font-size: 3rem;"></i>
                     <h4 class="text-muted mt-3">Select an option above to start searching</h4>
                 </div>
-                
+
                 <!-- Alumni content that will be populated when data is available -->
                 <div id="alumni-content" style="display: none;">
                     <div class="d-flex justify-content-between mb-3">
@@ -124,7 +174,7 @@
                         <!-- Will be populated via JavaScript -->
                     </div>
                 </div>
-                
+
                 <!-- Error message if search fails -->
                 <div id="alumni-error" class="alert alert-danger" style="display: none;">
                     <i class="bi bi-exclamation-triangle-fill me-2"></i>
@@ -147,7 +197,8 @@
                 <form id="remarkForm">
                     <div class="mb-3">
                         <label for="profileRemark" class="form-label">Add a note about this profile:</label>
-                        <textarea class="form-control" id="profileRemark" rows="3" placeholder="e.g., Met at conference, Potential research collaborator, etc."></textarea>
+                        <textarea class="form-control" id="profileRemark" rows="3"
+                            placeholder="e.g., Met at conference, Potential research collaborator, etc."></textarea>
                     </div>
                     <input type="hidden" id="remarkProfileName">
                     <input type="hidden" id="remarkProfileLink">
@@ -177,74 +228,76 @@
     </div>
 </div>
 
+
+
 <!-- Dynamic Card Ordering Script -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const userRole = "{{ session.get('role', '').lower() }}";
-    const connectionCardsContainer = document.getElementById('connection-cards');
+    document.addEventListener('DOMContentLoaded', function () {
+        const userRole = "{{ session.get('role', '').lower() }}";
+        const connectionCardsContainer = document.getElementById('connection-cards');
 
-    const connectionCards = [
-        {
-            type: 'faculty',
-            icon: 'bi-person-workspace',
-            title: 'Faculty',
-            description: 'Connect with professors and teachers from your institution',
-            buttonText: 'Find Faculty'
-        },
-        {
-            type: 'students',
-            icon: 'bi-mortarboard',
-            title: 'Students',
-            description: 'Connect with students and alumni from your institution',
-            buttonText: 'Find Students'
-        },
-        {
-            type: 'saved',
-            icon: 'bi-bookmark-star-fill',
-            title: 'Saved Profiles',
-            description: 'View profiles you\'ve saved for later',
-            buttonText: 'View Saved Profiles',
-            link: "{{ url_for('saved_profiles') }}"
-        }
-    ];
-
-    // Reorder cards based on user role
-    let orderedCards = connectionCards;
-    if (['teacher', 'professor', 'principal'].includes(userRole)) {
-        // For teachers, swap faculty and students
-        orderedCards = [
-            connectionCards[1],  // Students card
-            connectionCards[0],  // Faculty card
-            connectionCards[2]   // Saved Profiles card
+        const connectionCards = [
+            {
+                type: 'faculty',
+                icon: 'bi-person-workspace',
+                title: 'Faculty',
+                description: 'Connect with professors and teachers from your institution',
+                buttonText: 'Find Faculty'
+            },
+            {
+                type: 'students',
+                icon: 'bi-mortarboard',
+                title: 'Students',
+                description: 'Connect with students and alumni from your institution',
+                buttonText: 'Find Students'
+            },
+            {
+                type: 'saved',
+                icon: 'bi-bookmark-star-fill',
+                title: 'Saved Profiles',
+                description: 'View profiles you\'ve saved for later',
+                buttonText: 'View Saved Profiles',
+                link: "{{ url_for('saved_profiles') }}"
+            }
         ];
-    }
 
-    // Render cards
-    orderedCards.forEach(card => {
-        const cardElement = document.createElement('div');
-        cardElement.className = 'col';
-        cardElement.innerHTML = `
+        // Reorder cards based on user role
+        let orderedCards = connectionCards;
+        if (['teacher', 'professor', 'principal'].includes(userRole)) {
+            // For teachers, swap faculty and students
+            orderedCards = [
+                connectionCards[1],  // Students card
+                connectionCards[0],  // Faculty card
+                connectionCards[2]   // Saved Profiles card
+            ];
+        }
+
+        // Render cards
+        orderedCards.forEach(card => {
+            const cardElement = document.createElement('div');
+            cardElement.className = 'col';
+            cardElement.innerHTML = `
             <div class="card h-100 border-0 shadow-sm connection-option" data-type="${card.type}">
                 <div class="card-body text-center p-4 d-flex flex-column">
                     <i class="bi ${card.icon} text-primary mb-3" style="font-size: 3rem;"></i>
                     <h3 class="card-title">${card.title}</h3>
                     <p class="card-text">${card.description}</p>
                     <div class="mt-auto">
-                        ${card.link ? 
-                            `<a href="${card.link}" class="btn btn-warning">
+                        ${card.link ?
+                    `<a href="${card.link}" class="btn btn-warning">
                                 <i class="bi bi-bookmark-check me-2"></i>${card.buttonText}
-                            </a>` : 
-                            `<button class="btn btn-primary select-connection-btn" data-type="${card.type}">
+                            </a>` :
+                    `<button class="btn btn-primary select-connection-btn" data-type="${card.type}">
                                 <i class="bi bi-search me-2"></i>${card.buttonText}
                             </button>`
-                        }
+                }
                     </div>
                 </div>
             </div>
         `;
-        connectionCardsContainer.appendChild(cardElement);
+            connectionCardsContainer.appendChild(cardElement);
+        });
     });
-});
 </script>
 
 <!-- Existing profile.js script -->

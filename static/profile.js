@@ -14,13 +14,13 @@ document.addEventListener('DOMContentLoaded', function() {
     if (educationSelector) {
         educationSelector.addEventListener('change', function() {
             // Remove highlight from all education cards
-            document.querySelectorAll('.education-card').forEach(card => {
+            document.querySelectorAll('.education-card, .experience-card').forEach(card => {
                 card.classList.remove('border-primary');
             });
             
-            // Add highlight to selected education card
+            // Add highlight to selected education or experience card
             const selectedIndex = this.value;
-            const selectedCard = document.querySelector(`.education-card[data-edu-index="${selectedIndex}"]`);
+            const selectedCard = document.querySelector(`.education-card[data-edu-index="${selectedIndex}"], .experience-card[data-exp-index="${selectedIndex}"]`);
             if (selectedCard) {
                 selectedCard.classList.add('border-primary');
             }
@@ -54,6 +54,53 @@ document.addEventListener('DOMContentLoaded', function() {
         const remarkModal = bootstrap.Modal.getInstance(document.getElementById('remarkModal'));
         remarkModal.hide();
     });
+
+    // Set up event delegation for dynamically created buttons
+    const alumniContainer = document.getElementById('alumni-container');
+    if (alumniContainer) {
+        alumniContainer.addEventListener('click', function(event) {
+            // Check if the clicked element is a save profile button or its child
+            const saveButton = event.target.closest('.save-profile-btn');
+            if (saveButton) {
+                const name = saveButton.getAttribute('data-profile-name');
+                const link = saveButton.getAttribute('data-profile-link');
+                const type = saveButton.getAttribute('data-profile-type');
+                const institute = saveButton.getAttribute('data-profile-institute');
+                
+                if (saveButton.classList.contains('btn-success')) {
+                    // Already saved, remove it
+                    removeProfile(name, link);
+                } else {
+                    // Not saved, open modal
+                    openRemarkModal(name, link, type, institute);
+                }
+            }
+        });
+    }
+
+    // Find the logout link
+    const logoutLink = document.querySelector('a[href="/logout"]');
+    
+    if (logoutLink) {
+        logoutLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Create a form to post to logout (POST is better for logout actions)
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/logout';
+            
+            // Add CSRF token if you're using it
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = '{{ csrf_token }}';  // If you're using Flask-WTF
+            form.appendChild(csrfInput);
+            
+            document.body.appendChild(form);
+            form.submit();
+        });
+    }
 });
 
 function startSearch(type, educationIndex) {
@@ -125,10 +172,11 @@ function displayResults(profiles, type, educationIndex) {
     
     // Populate the results container
     const container = document.getElementById('alumni-container');
+    container.innerHTML = ''; // Clear previous results
     
     // Get the institution from the selected education option
-    const institutionElements = document.querySelectorAll('.institution-name');
-    const institute = institutionElements[educationIndex] ? institutionElements[educationIndex].textContent : '';
+    // This is more reliable than looking for specific elements
+    const institute = selectedText.split(' - ')[0].trim();
     
     profiles.forEach(profile => {
         const col = document.createElement('div');
@@ -139,17 +187,6 @@ function displayResults(profiles, type, educationIndex) {
         const saveButtonIcon = profile.is_saved ? 'bi-bookmark-check-fill' : 'bi-bookmark-plus';
         const saveButtonText = profile.is_saved ? 'Saved' : 'Save Profile';
         
-        // Update the action to open the remark modal for unsaved profiles
-        const saveButtonAction = profile.is_saved ? 
-            `onclick="removeProfile('${profile.name}', '${profile.link}')"` : 
-            `onclick="openRemarkModal('${profile.name}', '${profile.link}', '${type}', '${institute}')"`;
-        
-        // Add the remark display if profile has a remark
-        const remarkDisplay = profile.remark ? 
-            `<div class="mt-2 text-muted small border-top pt-2">
-                <strong>Note:</strong> ${profile.remark}
-            </div>` : '';
-
         col.innerHTML = `
             <div class="card h-100 border-0 shadow-lg" style="box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
                 <div class="card-body text-center">
@@ -162,10 +199,13 @@ function displayResults(profiles, type, educationIndex) {
                         <button class="btn ${saveButtonClass} btn-sm save-profile-btn" 
                                 data-profile-name="${profile.name}" 
                                 data-profile-link="${profile.link}"
-                                ${saveButtonAction}>
+                                data-profile-type="${type}"
+                                data-profile-institute="${institute}">
                             <i class="bi ${saveButtonIcon} me-2"></i>${saveButtonText}
                         </button>
-                        ${remarkDisplay}
+                        ${profile.remark ? `<div class="mt-2 text-muted small border-top pt-2">
+                                <strong>Note:</strong> ${profile.remark}
+                            </div>` : ''}
                     </div>
                 </div>
             </div>
@@ -178,6 +218,8 @@ function displayResults(profiles, type, educationIndex) {
 }
 
 function openRemarkModal(name, link, type, institute) {
+    console.log('Opening remark modal with:', { name, link, type, institute });
+    
     // Set the values in the hidden fields
     document.getElementById('remarkProfileName').value = name;
     document.getElementById('remarkProfileLink').value = link;
@@ -196,6 +238,8 @@ function openRemarkModal(name, link, type, institute) {
 }
 
 function saveProfile(name, link, type, institute, remark = '') {
+    console.log('Saving profile with:', { name, link, type, institute, remark });
+    
     fetch('/save_profile', {
         method: 'POST',
         headers: {
@@ -206,10 +250,15 @@ function saveProfile(name, link, type, institute, remark = '') {
             link: link,
             type: type,
             institute: institute,
-            remark: remark  // Add remark to the request body
+            remark: remark
         })
     })  
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Server responded with status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             // Update the button to show it's saved
@@ -220,7 +269,12 @@ function saveProfile(name, link, type, institute, remark = '') {
                 // Update button appearance
                 button.className = 'btn btn-success btn-sm save-profile-btn';
                 button.innerHTML = '<i class="bi bi-bookmark-check-fill me-2"></i>Saved';
-                button.onclick = () => removeProfile(name, link);
+                
+                // Update data attributes to maintain consistency
+                button.setAttribute('data-profile-name', name);
+                button.setAttribute('data-profile-link', link);
+                button.setAttribute('data-profile-type', type);
+                button.setAttribute('data-profile-institute', institute);
                 
                 // Add remark to the card if provided
                 if (remark && remark.trim() !== '') {
@@ -244,13 +298,14 @@ function saveProfile(name, link, type, institute, remark = '') {
             const bsToast = new bootstrap.Toast(toast);
             bsToast.show();
         } else {
-            // alert('Failed to save profile: ' + data.error);
+            console.error('Failed to save profile:', data.error);
+            alert('Failed to save profile: ' + (data.error || 'Unknown error'));
         }
     })
-    // .catch(error => {
-    //     console.error('Error saving profile:', error);
-    //     alert('Network error when saving profile. Please try again.');
-    // });
+    .catch(error => {
+        console.error('Error saving profile:', error);
+        alert('Network error when saving profile. Please try again.');
+    });
 }
 
 function removeProfile(name, link) {
@@ -267,7 +322,12 @@ function removeProfile(name, link) {
             link: link
         })
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Server responded with status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             // Update the button to show it's not saved
@@ -275,21 +335,13 @@ function removeProfile(name, link) {
             buttons.forEach(button => {
                 const parentCard = button.closest('.card-body');
                 
+                // Get the current type and institute from data attributes
+                const type = button.getAttribute('data-profile-type');
+                const institute = button.getAttribute('data-profile-institute');
+                
                 // Update button appearance
                 button.className = 'btn btn-outline-success btn-sm save-profile-btn';
                 button.innerHTML = '<i class="bi bi-bookmark-plus me-2"></i>Save Profile';
-                
-                // Get the current search type and institute
-                const type = document.querySelector('#results-heading').textContent.includes('Faculty') ? 'faculty' : 'students';
-                
-                // Get the selected education institution
-                const selector = document.getElementById('education-selector');
-                const educationIndex = selector.value;
-                const institutionElements = document.querySelectorAll('.institution-name');
-                const institute = institutionElements[educationIndex] ? institutionElements[educationIndex].textContent : '';
-                
-                // Update button click handler to open remark modal
-                button.onclick = () => openRemarkModal(name, link, type, institute);
                 
                 // Remove any remark display
                 const remarkDisplay = parentCard.querySelector('.text-muted.small.border-top');
@@ -308,13 +360,14 @@ function removeProfile(name, link) {
             const bsToast = new bootstrap.Toast(toast);
             bsToast.show();
         } else {
-            // alert('Failed to remove profile: ' + data.error);
+            console.error('Failed to remove profile:', data.error);
+            alert('Failed to remove profile: ' + (data.error || 'Unknown error'));
         }
     })
-    // .catch(error => {
-    //     console.error('Error removing profile:', error);
-    //     alert('Network error when removing profile. Please try again.');
-    // });
+    .catch(error => {
+        console.error('Error removing profile:', error);
+        alert('Network error when removing profile. Please try again.');
+    });
 }
 
 function showError(message) {
@@ -322,30 +375,3 @@ function showError(message) {
     document.getElementById('alumni-error').style.display = 'block';
     document.getElementById('error-message').textContent = message;
 }
-
-// Logout handler in profile.html
-document.addEventListener('DOMContentLoaded', function() {
-    // Find the logout link
-    const logoutLink = document.querySelector('a[href="/logout"]');
-    
-    if (logoutLink) {
-        logoutLink.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            // Create a form to post to logout (POST is better for logout actions)
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '/logout';
-            
-            // Add CSRF token if you're using it
-            const csrfInput = document.createElement('input');
-            csrfInput.type = 'hidden';
-            csrfInput.name = 'csrf_token';
-            csrfInput.value = '{{ csrf_token }}';  // If you're using Flask-WTF
-            form.appendChild(csrfInput);
-            
-            document.body.appendChild(form);
-            form.submit();
-        });
-    }
-});
