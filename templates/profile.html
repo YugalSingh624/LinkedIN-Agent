@@ -3,110 +3,112 @@
 
 {% block content %}
 <div class="container py-5">
-    <div class="card shadow border-0 mb-5">
+    <div class="card border-0 rounded-lg shadow-sm mb-5">
         <!-- Header with profile picture and name -->
-        <div class="card-header bg-primary text-white" style="background: linear-gradient(135deg, #0056b3, #003d80);">
-            <div class="row align-items-center py-4 text-center text-md-start">
-                <div class="col-auto">
-                    <div class="p-2 rounded-circle bg-white" style="display: inline-block;">
-                        <img src="{{ session.get('profile_picture.jpg', url_for('static', filename='profile_picture.jpg')) }}"
-                            alt="Profile Picture" class="img-fluid rounded-circle border border-white"
-                            style="width: 120px; height: 120px; object-fit: cover; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">
+        <div class="card-header text-white position-relative p-0">
+            <!-- Clean minimal gradient background -->
+            <div class="profile-header-bg rounded-top"></div>
+            <div class="position-relative px-4 py-5">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        <div class="profile-image-container">
+                            <img src="{{ session.get('profile_picture.jpg', url_for('static', filename='profile_picture.jpg')) }}"
+                                alt="Profile Picture" class="profile-image">
+                        </div>
                     </div>
-                </div>
-                <div class="col">
-                    <h1 class="display-5 mb-0 fw-bold">{{ session.get("first_name", "User") }} {{
-                        session.get("last_name", "") }}</h1>
-                    <p class="lead mb-0 mt-1">
-                        <i class="bi bi-envelope-fill me-2"></i>{{ session.get("email", "Not Available") }}
-                    </p>
-                </div>
-                <div class="col-md-3 text-md-end">
-                    <a href="{{ session.get('linkedin_url', '#') }}" target="_blank" class="btn btn-light">
-                        <i class="bi bi-linkedin me-2"></i>View LinkedIn Profile
-                    </a>
+                    <div class="col">
+                        <h1 class="display-5 mb-1 fw-bold">{{ session.get("first_name", "User") }} {{
+                            session.get("last_name", "") }}</h1>
+                        <p class="profile-email mb-0">
+                            <i class="bi bi-envelope me-2"></i>{{ session.get("email", "Not Available") }}
+                        </p>
+                    </div>
+                    <div class="col-md-3 text-md-end mt-3 mt-md-0">
+                        <a href="{{ session.get('linkedin_url', '#') }}" target="_blank" class="linkedin-btn">
+                            <i class="bi bi-linkedin me-2"></i>LinkedIn Profile
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="card-body p-4">
-            <!-- Education Section -->
-            <!-- Change around line 50, replace the Education Section -->
-            <!-- Education/Experience Section based on role -->
-            <div class="mb-5">
-                {% if session.get('role', '').lower() in ['teacher', 'professor', 'principal'] %}
-                <h2 class="border-bottom pb-2 mb-4 text-primary">
-                    <i class="bi bi-briefcase-fill me-2"></i>Experience
-                </h2>
+        <div class="card-body p-0">
+            <div class="content-container">
+                <!-- Education/Experience Section based on role -->
+                <div class="mb-5">
+                    {% if session.get('role', '').lower() in ['teacher', 'professor', 'principal'] %}
+                    <h2 class="section-header">
+                        <i class="bi bi-briefcase me-2"></i>Experience
+                    </h2>
 
-                {% if session.get("experience_details") %}
-                {% for exp in session["experience_details"] %}
-                <div class="card mb-3 border-0 shadow-sm experience-card" data-exp-index="{{ loop.index0 }}">
-                    <div class="card-body">
-                        <h4 class="card-title text-primary organization-name">{{ exp.get("Organization", " ") }}</h4>
-                        <h5 class="card-subtitle mb-2 text-muted">{{ exp.get("Title", " ") }}</h5>
-                        <p class="card-text text-muted">{{ exp.get("Location", " ") }}</p>
+                    {% if session.get("experience_details") %}
+                    <div class="timeline-container">
+                        {% for exp in session["experience_details"] %}
+                        <div class="timeline-item" data-exp-index="{{ loop.index0 }}">
+                            <div class="timeline-content">
+                                <h4 class="item-title">{{ exp.get("Organization", " ") }}</h4>
+                                <h5 class="item-subtitle">{{ exp.get("Title", " ") }}</h5>
+                                <p class="item-location">{{ exp.get("Location", " ") }}</p>
 
-                        <div class="badge bg-secondary mb-3">
-                            {{ exp.get("StartDate", " ") }} -
-                            {{ exp.get("EndDate", "Present") if not exp.get("EndDate") else exp.get("EndDate") }}
+                                <div class="timeline-badge">
+                                    {{ exp.get("StartDate", " ") }} -
+                                    {{ exp.get("EndDate", "Present") if not exp.get("EndDate") else exp.get("EndDate") }}
+                                </div>
+                            </div>
                         </div>
+                        {% endfor %}
                     </div>
-                </div>
-                {% endfor %}
-                {% else %}
-                <div class="alert alert-info">
-                    <i class="bi bi-info-circle-fill me-2"></i>No experience details available.
-                </div>
-                {% endif %}
-                {% else %}
-                <h2 class="border-bottom pb-2 mb-4 text-primary">
-                    <i class="bi bi-mortarboard-fill me-2"></i>Education
-                </h2>
+                    {% else %}
+                    <div class="alert-minimal">
+                        <i class="bi bi-info-circle me-2"></i>No experience details available.
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <h2 class="section-header">
+                        <i class="bi bi-mortarboard me-2"></i>Education
+                    </h2>
 
-                {% if session.get("education_details") %}
-                {% for edu in session["education_details"] %}
-                <div class="card mb-3 border-0 shadow-sm education-card" data-edu-index="{{ loop.index0 }}">
-                    <div class="card-body">
-                        <h4 class="card-title text-primary institution-name">{{ edu.get("InstitutionName", " ") }}
-                        </h4>
-                        <h5 class="card-subtitle mb-2 text-muted">{{ edu.get("Degree", " ") }} in {{
-                            edu.get("Field_of_study", " ") }}</h5>
+                    {% if session.get("education_details") %}
+                    <div class="timeline-container">
+                        {% for edu in session["education_details"] %}
+                        <div class="timeline-item" data-edu-index="{{ loop.index0 }}">
+                            <div class="timeline-content">
+                                <h4 class="item-title">{{ edu.get("InstitutionName", " ") }}</h4>
+                                <h5 class="item-subtitle">{{ edu.get("Degree", " ") }} in {{
+                                    edu.get("Field_of_study", " ") }}</h5>
 
-                        {% if edu.get("TimePeriod") %}
-                        <div class="badge bg-secondary mb-3">
-                            {{ edu["TimePeriod"].get("startedOn", {}).get("year", " ") }} -
-                            {{ edu["TimePeriod"].get("endedOn", {}).get("year", " ") }}
+                                {% if edu.get("TimePeriod") %}
+                                <div class="timeline-badge">
+                                    {{ edu["TimePeriod"].get("startedOn", {}).get("year", " ") }} -
+                                    {{ edu["TimePeriod"].get("endedOn", {}).get("year", " ") }}
+                                </div>
+                                {% endif %}
+                            </div>
                         </div>
-                        {% endif %}
+                        {% endfor %}
                     </div>
+                    {% else %}
+                    <div class="alert-minimal">
+                        <i class="bi bi-info-circle me-2"></i>No education details available.
+                    </div>
+                    {% endif %}
+                    {% endif %}
                 </div>
-                {% endfor %}
-                {% else %}
-                <div class="alert alert-info">
-                    <i class="bi bi-info-circle-fill me-2"></i>No education details available.
-                </div>
-                {% endif %}
-                {% endif %}
-            </div>
 
-            <!-- Connection Options Section -->
-            <div class="mb-5">
-                <h2 class="border-bottom pb-2 mb-4 text-primary">
-                    <i class="bi bi-people-fill me-2"></i>Connect With Your Network
-                </h2>
+                <!-- Connection Options Section -->
+                <div class="mb-5">
+                    <h2 class="section-header">
+                        <i class="bi bi-people me-2"></i>Connect With Your Network
+                    </h2>
 
-                <!-- Education Selection Dropdown -->
-                <!-- Change around line 79, update the "Education Selection Dropdown" section -->
-                <!-- Education/Experience Selection Dropdown -->
-                <div class="row mb-4">
-                    <div class="col-md-8">
-                        <div class="card border-0 shadow-sm">
-                            <div class="card-body">
+                    <!-- Education/Experience Selection Dropdown -->
+                    <div class="row mb-4">
+                        <div class="col-md-8">
+                            <div class="selector-card">
                                 {% if session.get('role', '').lower() in ['teacher', 'professor', 'principal'] %}
-                                <h5 class="card-title">Select Experience for Network Search</h5>
-                                <p class="card-text">Choose which organization to search for connections from:</p>
-                                <select class="form-select form-select-lg mb-3" id="education-selector">
+                                <h5 class="selector-title">Select Experience</h5>
+                                <p class="selector-desc">Choose which organization to search for connections:</p>
+                                <select class="form-select custom-select" id="education-selector">
                                     {% if session.get("experience_details") %}
                                     {% for exp in session["experience_details"] %}
                                     <option value="{{ loop.index0 }}">
@@ -118,10 +120,9 @@
                                     {% endif %}
                                 </select>
                                 {% else %}
-                                <h5 class="card-title">Select Education for Network Search</h5>
-                                <p class="card-text">Choose which educational institution to search for connections
-                                    from:</p>
-                                <select class="form-select form-select-lg mb-3" id="education-selector">
+                                <h5 class="selector-title">Select Education</h5>
+                                <p class="selector-desc">Choose which educational institution to search for connections:</p>
+                                <select class="form-select custom-select" id="education-selector">
                                     {% if session.get("education_details") %}
                                     {% for edu in session["education_details"] %}
                                     <option value="{{ loop.index0 }}">
@@ -136,49 +137,49 @@
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Dynamic Connection Cards -->
-                <div class="row row-cols-1 row-cols-md-3 g-4" id="connection-cards">
-                    <!-- Cards will be dynamically populated via JavaScript -->
-                </div>
-            </div>
-
-            <!-- Alumni/Connection Results Section -->
-            <div>
-                <h2 class="border-bottom pb-2 mb-4 text-primary" id="results-heading">
-                    <i class="bi bi-list-ul me-2"></i>Search Results
-                </h2>
-
-                <!-- Loading spinner that will be shown while data is being fetched -->
-                <div id="alumni-loading" class="text-center py-5" style="display: none;">
-                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <h4 class="text-muted">Loading profiles...</h4>
-                    <p class="text-muted">This may take a few moments</p>
-                </div>
-
-                <!-- No selection message -->
-                <div id="no-selection" class="text-center py-5">
-                    <i class="bi bi-arrow-up-circle text-muted" style="font-size: 3rem;"></i>
-                    <h4 class="text-muted mt-3">Select an option above to start searching</h4>
-                </div>
-
-                <!-- Alumni content that will be populated when data is available -->
-                <div id="alumni-content" style="display: none;">
-                    <div class="d-flex justify-content-between mb-3">
-                        <h5 id="search-info" class="text-muted"></h5>
-                    </div>
-                    <div class="row row-cols-1 row-cols-md-3 g-4" id="alumni-container">
-                        <!-- Will be populated via JavaScript -->
+                    <!-- Dynamic Connection Cards -->
+                    <div class="row row-cols-1 row-cols-md-3 g-4" id="connection-cards">
+                        <!-- Cards will be dynamically populated via JavaScript -->
                     </div>
                 </div>
 
-                <!-- Error message if search fails -->
-                <div id="alumni-error" class="alert alert-danger" style="display: none;">
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                    <span id="error-message">Error loading profiles.</span>
+                <!-- Alumni/Connection Results Section -->
+                <div>
+                    <h2 class="section-header" id="results-heading">
+                        <i class="bi bi-list me-2"></i>Search Results
+                    </h2>
+
+                    <!-- Loading spinner that will be shown while data is being fetched -->
+                    <div id="alumni-loading" class="loading-container" style="display: none;">
+                        <div class="spinner">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <h4 class="loading-text">Loading profiles...</h4>
+                        <p class="loading-subtext">This may take a few moments</p>
+                    </div>
+
+                    <!-- No selection message -->
+                    <div id="no-selection" class="empty-state">
+                        <i class="bi bi-arrow-up-circle"></i>
+                        <h4>Select an option above to start searching</h4>
+                    </div>
+
+                    <!-- Alumni content that will be populated when data is available -->
+                    <div id="alumni-content" style="display: none;">
+                        <div class="d-flex justify-content-between mb-3">
+                            <h5 id="search-info" class="search-results-info"></h5>
+                        </div>
+                        <div class="row row-cols-1 row-cols-md-3 g-4" id="alumni-container">
+                            <!-- Will be populated via JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Error message if search fails -->
+                    <div id="alumni-error" class="error-message" style="display: none;">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <span id="error-message">Error loading profiles.</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -187,9 +188,9 @@
 
 <!-- Modal for adding remarks -->
 <div class="modal fade" id="remarkModal" tabindex="-1" aria-labelledby="remarkModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0">
+            <div class="modal-header border-0">
                 <h5 class="modal-title" id="remarkModalLabel">Add a Remark</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -197,7 +198,7 @@
                 <form id="remarkForm">
                     <div class="mb-3">
                         <label for="profileRemark" class="form-label">Add a note about this profile:</label>
-                        <textarea class="form-control" id="profileRemark" rows="3"
+                        <textarea class="form-control custom-textarea" id="profileRemark" rows="3"
                             placeholder="e.g., Met at conference, Potential research collaborator, etc."></textarea>
                     </div>
                     <input type="hidden" id="remarkProfileName">
@@ -206,9 +207,9 @@
                     <input type="hidden" id="remarkProfileInstitute">
                 </form>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="saveRemarkBtn">Save Profile</button>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary save-btn" id="saveRemarkBtn">Save Profile</button>
             </div>
         </div>
     </div>
@@ -217,8 +218,8 @@
 <!-- Toast notification for save status -->
 <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
     <div id="saveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="toast-header">
-            <i class="bi bi-check-circle-fill text-success me-2"></i>
+        <div class="toast-header border-0">
+            <i class="bi bi-check-circle text-success me-2"></i>
             <strong class="me-auto">Profile Saved</strong>
             <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>
@@ -228,9 +229,364 @@
     </div>
 </div>
 
+<!-- Custom styling for the enhanced minimal design -->
+<style>
+    /* Base styles */
+    body {
+        background-color: #f9fafc;
+        font-family: 'Inter', 'Segoe UI', sans-serif;
+        color: #333;
+    }
+    
+    /* Profile header */
+    .profile-header-bg {
+        background: linear-gradient(135deg, #537895 0%, #09203f 100%);
+        height: 100%;
+        width: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 0;
+    }
+    
+    .profile-image-container {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        border: 3px solid #ffffff;
+        overflow: hidden;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        background-color: #fff;
+        transition: transform 0.3s ease;
+    }
+    
+    .profile-image-container:hover {
+        transform: scale(1.05);
+    }
+    
+    .profile-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .profile-email {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .linkedin-btn {
+        background-color: #ffffff;
+        color: #0A66C2;
+        border: none;
+        border-radius: 50px;
+        padding: 10px 18px;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        box-shadow: 0 4px 10px rgba(10, 102, 194, 0.1);
+    }
+    
+    .linkedin-btn:hover {
+        background-color: #f0f7ff;
+        box-shadow: 0 6px 12px rgba(10, 102, 194, 0.15);
+        transform: translateY(-3px);
+    }
+    
+    /* Content container */
+    .content-container {
+        padding: 2.5rem;
+    }
+    
+    /* Section headers */
+    .section-header {
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #09203f;
+        margin-bottom: 1.75rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #edf2f7;
+        display: flex;
+        align-items: center;
+    }
+    
+    .section-header i {
+        color: #537895;
+    }
+    
+    /* Timeline design for education/experience */
+    .timeline-container {
+        position: relative;
+        padding-left: 1rem;
+        margin-top: 2rem;
+    }
+    
+    .timeline-item {
+        position: relative;
+        padding-bottom: 2rem;
+        padding-left: 1.75rem;
+        border-left: 2px solid #edf2f7;
+        margin-left: 0.5rem;
+    }
+    
+    .timeline-item:last-child {
+        padding-bottom: 0.5rem;
+        border-left: 2px solid transparent;
+    }
+    
+    .timeline-item:before {
+        content: '';
+        position: absolute;
+        left: -0.5rem;
+        top: 0;
+        width: 1rem;
+        height: 1rem;
+        border-radius: 50%;
+        background: #537895;
+        border: 2px solid #fff;
+        box-shadow: 0 0 0 4px rgba(83, 120, 149, 0.1);
+    }
+    
+    .timeline-content {
+        background-color: #fff;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .timeline-content:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    }
+    
+    .item-title {
+        color: #09203f;
+        font-weight: 600;
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .item-subtitle {
+        color: #537895;
+        font-weight: 500;
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .item-location {
+        color: #64748b;
+        font-size: 0.9rem;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .item-location:before {
+        content: '\F4E7';
+        font-family: 'bootstrap-icons';
+        margin-right: 0.5rem;
+        font-size: 0.85rem;
+        color: #94a3b8;
+    }
+    
+    .timeline-badge {
+        display: inline-block;
+        background-color: #f1f5f9;
+        color: #475569;
+        padding: 0.35rem 0.85rem;
+        border-radius: 50px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    /* Selector card */
+    .selector-card {
+        background-color: #fff;
+        border-radius: 12px;
+        padding: 1.75rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+        transition: transform 0.3s ease;
+    }
+    
+    .selector-card:hover {
+        transform: translateY(-3px);
+    }
+    
+    .selector-title {
+        font-weight: 600;
+        color: #09203f;
+        margin-bottom: 0.5rem;
+    }
+    
+    .selector-desc {
+        color: #64748b;
+        font-size: 0.9rem;
+        margin-bottom: 1.25rem;
+    }
+    
+    .custom-select {
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        color: #475569;
+        background-color: #f8fafc;
+    }
+    
+    .custom-select:focus {
+        border-color: #537895;
+        box-shadow: 0 0 0 3px rgba(83, 120, 149, 0.1);
+        background-color: #fff;
+    }
+    
+    /* Alert and message styles */
+    .alert-minimal {
+        background-color: #f0f9ff;
+        color: #0369a1;
+        padding: 1.25rem;
+        border-radius: 10px;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        border-left: 4px solid #0ea5e9;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 4rem 0;
+    }
+    
+    .empty-state i {
+        font-size: 3.5rem;
+        color: #cbd5e1;
+        margin-bottom: 1.5rem;
+    }
+    
+    .empty-state h4 {
+        color: #94a3b8;
+        font-weight: 500;
+    }
+    
+    .loading-container {
+        text-align: center;
+        padding: 4rem 0;
+    }
+    
+    .spinner {
+        display: inline-block;
+        width: 3.5rem;
+        height: 3.5rem;
+        border: 3px solid rgba(83, 120, 149, 0.15);
+        border-radius: 50%;
+        border-top-color: #537895;
+        animation: spin 1s ease-in-out infinite;
+        margin-bottom: 2rem;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    .loading-text {
+        color: #334155;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+    
+    .loading-subtext {
+        color: #64748b;
+    }
+    
+    .error-message {
+        background-color: #fef2f2;
+        color: #b91c1c;
+        padding: 1.25rem;
+        border-radius: 10px;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+        border-left: 4px solid #ef4444;
+    }
+    
+    .search-results-info {
+        color: #64748b;
+        font-weight: 500;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .search-results-info:before {
+        content: '\F52A';
+        font-family: 'bootstrap-icons';
+        margin-right: 0.5rem;
+        color: #537895;
+    }
+    
+    /* Modal customization */
+    .modal-content {
+        border-radius: 14px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+    
+    .custom-textarea {
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 1rem;
+        resize: none;
+        transition: all 0.3s ease;
+        background-color: #f8fafc;
+    }
+    
+    .custom-textarea:focus {
+        border-color: #537895;
+        box-shadow: 0 0 0 3px rgba(83, 120, 149, 0.1);
+        background-color: #fff;
+    }
+    
+    .save-btn {
+        background-color: #537895;
+        border: none;
+        border-radius: 50px;
+        padding: 0.6rem 1.5rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .save-btn:hover {
+        background-color: #09203f;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(9, 32, 63, 0.2);
+    }
+    
+    /* Toast styling */
+    .toast {
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        border: none;
+    }
+    
+    /* Student/Alumni cards that will be created via JS */
+    .alumni-card {
+        transition: all 0.3s ease;
+        border-radius: 12px !important;
+        overflow: hidden;
+    }
+    
+    .alumni-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08) !important;
+    }
+</style>
 
-
-<!-- Dynamic Card Ordering Script -->
+<!-- Dynamic Card Ordering Script with enhanced styling -->
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const userRole = "{{ session.get('role', '').lower() }}";
@@ -253,7 +609,7 @@
             },
             {
                 type: 'saved',
-                icon: 'bi-bookmark-star-fill',
+                icon: 'bi-bookmark-star',
                 title: 'Saved Profiles',
                 description: 'View profiles you\'ve saved for later',
                 buttonText: 'View Saved Profiles',
@@ -279,15 +635,17 @@
             cardElement.innerHTML = `
             <div class="card h-100 border-0 shadow-sm connection-option" data-type="${card.type}">
                 <div class="card-body text-center p-4 d-flex flex-column">
-                    <i class="bi ${card.icon} text-primary mb-3" style="font-size: 3rem;"></i>
-                    <h3 class="card-title">${card.title}</h3>
-                    <p class="card-text">${card.description}</p>
-                    <div class="mt-auto">
+                    <div class="icon-circle mb-3 mx-auto">
+                        <i class="bi ${card.icon}"></i>
+                    </div>
+                    <h3 class="card-title fs-4 mb-2">${card.title}</h3>
+                    <p class="card-text text-muted">${card.description}</p>
+                    <div class="mt-auto pt-3">
                         ${card.link ?
-                    `<a href="${card.link}" class="btn btn-warning">
-                                <i class="bi bi-bookmark-check me-2"></i>${card.buttonText}
+                    `<a href="${card.link}" class="btn btn-outline-warning w-100">
+                                <i class="bi bi-bookmark me-2"></i>${card.buttonText}
                             </a>` :
-                    `<button class="btn btn-primary select-connection-btn" data-type="${card.type}">
+                    `<button class="btn btn-outline-primary w-100 select-connection-btn" data-type="${card.type}">
                                 <i class="bi bi-search me-2"></i>${card.buttonText}
                             </button>`
                 }
@@ -296,6 +654,128 @@
             </div>
         `;
             connectionCardsContainer.appendChild(cardElement);
+        });
+
+        // Additional styling for connection cards
+        document.head.insertAdjacentHTML('beforeend', `
+            <style>
+                .connection-option {
+                    transition: all 0.3s ease;
+                    border-radius: 12px;
+                    overflow: hidden;
+                }
+                .connection-option:hover {
+                    transform: translateY(-5px);
+                    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08) !important;
+                }
+                .icon-circle {
+                    width: 65px;
+                    height: 65px;
+                    background-color: #f1f5f9;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: all 0.3s ease;
+                    margin-top: 0.5rem;
+                }
+                .connection-option:hover .icon-circle {
+                    background-color: #e0f2fe;
+                    transform: scale(1.1);
+                }
+                .icon-circle i {
+                    font-size: 1.75rem;
+                    color: #537895;
+                    transition: all 0.3s ease;
+                }
+                .connection-option:hover .icon-circle i {
+                    color: #09203f;
+                }
+                .btn-outline-primary {
+                    border-color: #537895;
+                    color: #537895;
+                    border-radius: 50px;
+                    padding: 0.6rem 1.25rem;
+                    font-weight: 500;
+                    transition: all 0.3s ease;
+                }
+                .btn-outline-primary:hover {
+                    background-color: #537895;
+                    color: white;
+                    box-shadow: 0 4px 12px rgba(83, 120, 149, 0.2);
+                    transform: translateY(-2px);
+                }
+                .btn-outline-warning {
+                    border-color: #f59e0b;
+                    color: #f59e0b;
+                    border-radius: 50px;
+                    padding: 0.6rem 1.25rem;
+                    font-weight: 500;
+                    transition: all 0.3s ease;
+                }
+                .btn-outline-warning:hover {
+                    background-color: #f59e0b;
+                    color: white;
+                    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+                    transform: translateY(-2px);
+                }
+                
+                /* Enhancing the design of profile cards that will be generated by JS */
+                .profile-card {
+                    transition: all 0.3s ease;
+                    border-radius: 12px !important;
+                    overflow: hidden;
+                    border: none !important;
+                }
+                .profile-card:hover {
+                    transform: translateY(-5px);
+                    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08) !important;
+                }
+                .profile-card .card-body {
+                    padding: 1.5rem;
+                }
+                .profile-card .profile-pic {
+                    width: 80px;
+                    height: 80px;
+                    border-radius: 50%;
+                    border: 3px solid #fff;
+                    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+                    transition: all 0.3s ease;
+                }
+                .profile-card:hover .profile-pic {
+                    transform: scale(1.05);
+                }
+                .action-btn {
+                    border-radius: 50px;
+                    padding: 0.5rem 1.25rem;
+                    font-weight: 500;
+                    transition: all 0.3s ease;
+                }
+                .action-btn:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                }
+            </style>
+        `);
+        
+        // Add enhancement for profile cards that will be created by JS
+        // This assumes that the profile.js file creates cards with specific classes
+        document.addEventListener('DOMNodeInserted', function(e) {
+            if (e.target.className === 'card h-100 shadow-sm alumni-card') {
+                e.target.classList.add('profile-card');
+                
+                // Find and enhance the profile picture if it exists
+                const profilePic = e.target.querySelector('.alumni-pic');
+                if (profilePic) {
+                    profilePic.classList.add('profile-pic');
+                }
+                
+                // Enhance action buttons if they exist
+                const actionButtons = e.target.querySelectorAll('.btn');
+                actionButtons.forEach(btn => {
+                    btn.classList.add('action-btn');
+                });
+            }
         });
     });
 </script>

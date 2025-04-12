@@ -72,17 +72,65 @@ def home():
     # Get invite token if present
     invite_token = request.args.get("invite")
     
-    if invite_token:
-        # Store in session temporarily
-        session["invite_token"] = invite_token
+    # If there's an invite token and user is already logged in,
+    # redirect them directly to the shared profiles page
+    if invite_token and 'user_id' in session:
+        # Mark invite as used
+        db.invites.update_one(
+            {'token': invite_token},
+            {'$set': {'used': True, 'used_by': session['user_id'], 'used_at': datetime.now()}}
+        )
+        return redirect(url_for('shared_profiles', invite_token=invite_token))
     
+    # Build the LinkedIn authentication URL
     linkedin_auth_url = (
         f"{AUTH_URL}?response_type=code&client_id={CLIENT_ID}"
         f"&redirect_uri={REDIRECT_URI}&scope=openid%20profile%20email"
     )
     
-    # Pass the invite status to the template
-    return render_template("index.html", linkedin_auth_url=linkedin_auth_url, invite=bool(invite_token))
+    # Check if token represents a valid invitation
+    invite_data = None
+    inviter_name = None
+    if invite_token:
+        invite_data = db.invites.find_one({'token': invite_token})
+        if invite_data:
+            inviter_name = invite_data.get('created_by_name', 'Someone')
+            
+            # Store invite token in session if present and valid
+            session["invite_token"] = invite_token
+            
+            # Render the invitation welcome page
+            return render_template(
+                "invite_welcome.html",  # This will be your second HTML template
+                linkedin_auth_url=linkedin_auth_url,
+                invite=True,
+                inviter_name=inviter_name
+            )
+    
+    # If no invite token or invalid token, show the regular login page (first HTML)
+    return render_template(
+        "index.html",  # This will be your first HTML template 
+        linkedin_auth_url=linkedin_auth_url
+    )
+
+# New route to handle the redirection from invitation welcome page to login form
+@app.route("/continue-with-linkedin")
+def continue_to_login():
+    # Get invite token from session
+    invite_token = session.get("invite_token")
+    
+    # Build the LinkedIn authentication URL
+    linkedin_auth_url = (
+        f"{AUTH_URL}?response_type=code&client_id={CLIENT_ID}"
+        f"&redirect_uri={REDIRECT_URI}&scope=openid%20profile%20email"
+    )
+    
+    # Render the login form (first HTML)
+    return render_template(
+        "index.html",
+        linkedin_auth_url=linkedin_auth_url,
+        invite_token=invite_token  # Pass the token in case you need it in the form
+    )
 
 @app.route("/handle_login", methods=["POST"])
 def handle_login():
@@ -242,6 +290,7 @@ def callback():
         
         # Now check if there was an invite token and process it
         invite_token = session.pop("invite_token", None)
+        redirect_to_shared = False
         
         if invite_token:
             try:
@@ -269,7 +318,8 @@ def callback():
                                 'used': True, 
                                 'used_by': user_id,
                                 'used_by_name': f"{session['first_name']} {session['last_name']}",
-                                'used_at': datetime.now()
+                                'used_at': datetime.now(),
+                                'used_email': session['email']
                             }
                         }
                     )
@@ -282,11 +332,18 @@ def callback():
                     
                     # Store a flash message to show on the profile page
                     flash("You've joined via an invitation. Welcome to our platform!", "success")
+                    
+                    # Set flag to redirect to shared profiles
+                    redirect_to_shared = True
             except Exception as e:
                 # Log the error but don't interrupt the user flow
                 print(f"Error processing invite token: {e}")
 
-        return redirect(url_for("profile"))
+        # Redirect based on invitation status
+        if redirect_to_shared and invite_token:
+            return redirect(url_for("shared_profiles", invite_token=invite_token))
+        else:
+            return redirect(url_for("profile"))
 
     except requests.exceptions.RequestException as e:
         return f"LinkedIn API Error: {e}", 500
@@ -870,22 +927,32 @@ def logout_complete():
 def generate_invite_link():
     try:
         # Get current user info from session
-        user_id = session.get("user_id")
+        user_email = session.get("email")
+        user_role = session.get('role', '').lower()
         user_name = f"{session.get('first_name', '')} {session.get('last_name', '')}"
         
-        if not user_id:
+        if not user_email:
             return jsonify({'success': False, 'error': 'User not authenticated'})
         
         # Generate a unique token
         invite_token = str(uuid.uuid4())[:8]  # Using first 8 chars for shorter URL
         
+        # Get the user's saved profiles
+        saved_profiles = list(db.saved_profiles.find({"saved_by": user_email,
+                                                      'saved_by_role':user_role}))
+        
+        # Store the IDs of saved profiles in the invite document
+        profile_ids = [str(profile['_id']) for profile in saved_profiles]
+        
         # Store the invite in your database
         db.invites.insert_one({
             'token': invite_token,
-            'created_by': user_id,
+            'created_by': user_email,
+            'saved_by_role':user_role,
             'created_by_name': user_name,
             'created_at': datetime.now(),
-            'used': False
+            'used': False,
+            # 'shared_profiles': profile_ids  # Add this field to store profile IDs
         })
         
         # Create the full invite URL
@@ -897,6 +964,184 @@ def generate_invite_link():
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+    
+@app.route('/shared_profiles/<invite_token>')
+def shared_profiles(invite_token):
+    """
+    Display profiles shared through an invitation.
+    """
+    # Ensure user is authenticated
+    user_email = session.get("email")
+    user_role = session.get('role', '').lower()
+    if "user_id" not in session:
+        # Store the invite token in session for after login
+        session["invite_token"] = invite_token
+        flash("Please log in to view shared profiles", "info")
+        return redirect(url_for("home"))
+    
+    try:
+        # Look up the invitation
+        invite = db.invites.find_one({'token': invite_token})
+        
+        if not invite:
+            flash("This invitation link is not valid or has expired", "warning")
+            return redirect(url_for("profile"))
+        
+        # Get information about who sent the invitation
+        # inviter_user_id = invite.get('created_by')
+        inviter_name = invite.get('created_by_name', 'Someone')
+        inviters_email = invite.get('created_by')
+        
+        # Get all profiles saved by the inviter
+        profiles = list(db.saved_profiles.find({"saved_by": inviters_email,
+                                                'saved_by_role':user_role}))
+        
+        # Check if current user has already saved any of these profiles
+        user_saved_links = []
+        if "user_id" in session:
+            user_saved_profiles = db.saved_profiles.find({
+                "saved_by": user_email
+            })
+            user_saved_links = [profile['link'] for profile in user_saved_profiles]
+        
+        # Add a flag to each profile indicating if it's already saved
+        for profile in profiles:
+            profile['already_saved'] = profile['link'] in user_saved_links
+        
+        # If this is the first time viewing, track it
+        if not invite.get('viewed_at'):
+            db.invites.update_one(
+                {'token': invite_token},
+                {'$set': {'viewed_at': datetime.now()}}
+            )
+        
+        # Determine user role for filtering options
+        user_role = ""
+        if "role" in session:
+            user_role = session["role"].lower()
+        
+        # Render the shared profiles template
+        return render_template(
+            'shared_profiles.html',
+            profiles=profiles,
+            inviter_name=inviter_name,
+            invite_token=invite_token,
+            user_role=user_role
+        )
+    except Exception as e:
+        flash(f"An error occurred while loading shared profiles: {str(e)}", "danger")
+        return redirect(url_for("profile"))
+    
+@app.route('/save_shared_profile', methods=['POST'])
+def save_shared_profile():
+    """
+    Save a profile that was shared via invitation to the current user's saved profiles.
+    """
+
+    saved_by_role = session.get('role', '').lower()
+    # Ensure user is logged in
+    if "user_id" not in session:
+        return jsonify({'success': False, 'error': 'You must be logged in to save profiles'})
+    
+    try:
+        data = request.json
+        profile_id = data.get('profile_id')
+        invite_token = data.get('invite_token')
+        
+        # Convert string ID to ObjectId if needed
+        from bson.objectid import ObjectId
+        try:
+            if isinstance(profile_id, str) and len(profile_id) == 24:
+                obj_id = ObjectId(profile_id)
+            else:
+                obj_id = profile_id
+        except:
+            return jsonify({'success': False, 'error': 'Invalid profile ID format'})
+        
+        # Find the original profile
+        original_profile = db.saved_profiles.find_one({'_id': obj_id})
+        if not original_profile:
+            return jsonify({'success': False, 'error': 'Profile not found'})
+        
+        # Check if already saved by current user
+        existing = db.saved_profiles.find_one({
+            'user_id': session["user_id"],
+            'link': original_profile['link']
+        })
+        
+        if existing:
+            return jsonify({'success': True, 'message': 'Profile already saved'})
+        
+        # Create a new copy for the current user
+        new_profile = {
+            # 'user_id': session["user_id"],
+            'name': original_profile['name'],
+            'link': original_profile['link'],
+            'institute': original_profile['institute'],
+            'profile_type': original_profile['profile_type'],
+            'saved_at': datetime.now(),
+            # 'shared_from': original_profile['user_id'],
+            'shared_via_invite': invite_token,
+            'remark': original_profile.get('remark', ''),
+            'saved_by_role': saved_by_role,
+            "saved_by": session["email"]
+        }
+        
+        # If the original has a remark and we don't want to overwrite it,
+        # we can append information about where it came from
+        if invite_token:
+            invite = db.invites.find_one({'token': invite_token})
+            if invite and invite.get('created_by_name'):
+                if not new_profile['remark']:
+                    new_profile['remark'] = f"Shared by {invite['created_by_name']}"
+                else:
+                    new_profile['remark'] += f" (Shared by {invite['created_by_name']})"
+        
+        # Insert the new profile
+        result = db.saved_profiles.insert_one(new_profile)
+        
+        # Track this save as part of the invitation metrics
+        if invite_token:
+            db.invites.update_one(
+                {'token': invite_token},
+                {'$inc': {'profiles_saved': 1}}
+            )
+        
+        return jsonify({
+            'success': True,
+            'profile_id': str(result.inserted_id)
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+    
+# In your Flask app
+@app.route('/toggle_saved_profile', methods=['POST'])
+def toggle_saved_profile():
+    data = request.json
+    profile_id = data.get('profile_id')
+    invite_token = data.get('invite_token')
+    action = data.get('action')  # 'save' or 'remove'
+    
+    try:
+        # Get the current user
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'success': False, 'error': 'Not logged in'})
+        
+        if action == 'save':
+            # Save the profile to the user's saved profiles
+            # Your database code here...
+            return jsonify({'success': True})
+        elif action == 'remove':
+            # Remove the profile from the user's saved profiles
+            # Your database code here...
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'error': 'Invalid action'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 
 # Clean up executor when app exits
 @atexit.register
