@@ -1,0 +1,396 @@
+{% extends "base.html" %}
+
+{% block title %}Mentor Payment Details{% endblock %}
+
+{% block content %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+<style>
+    body {
+        background-color: #f9f5e7;
+        font-family: 'Segoe UI', sans-serif;
+    }
+
+    .container {
+        max-width: 800px;
+    }
+
+    .profile-header {
+        background: linear-gradient(135deg, #e67e22, #f39c12, #f5b041);
+        color: #1a2639;
+        border-radius: 1rem 1rem 0 0;
+        padding: 2rem 1.5rem;
+        text-align: center;
+        position: relative;
+        box-shadow: 0 4px 20px rgba(230, 126, 34, 0.2);
+    }
+
+    .logo-container {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 1rem;
+    }
+
+    .logo-img {
+        width: 90px;
+        height: 90px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid rgba(255, 255, 255, 0.8);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        transition: all 0.3s ease;
+    }
+
+    .logo-img:hover {
+        transform: scale(1.05);
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+    }
+
+    .profile-header h4 {
+        font-weight: 600;
+        margin-bottom: 0.3rem;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .profile-header p {
+        opacity: 0.9;
+        font-size: 0.95rem;
+    }
+
+    .card-custom {
+        background: #ffffff;
+        border-radius: 1rem;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+        transition: all 0.3s ease;
+        border: 1px solid #e0e0e0;
+    }
+
+    .card-custom:hover {
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+        transform: translateY(-5px);
+    }
+
+    .card-body {
+        padding: 2rem;
+        background: white;
+        box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.03);
+    }
+
+    .section-title {
+        font-weight: 600;
+        color: #1a2639;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .section-title i {
+        color: #e67e22;
+    }
+
+    .form-label {
+        font-weight: 500;
+        font-size: 0.95rem;
+        color: #4a5568;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-check-input {
+        cursor: pointer;
+    }
+
+    .form-check-input:checked {
+        background-color: #e67e22;
+        border-color: #e67e22;
+    }
+
+    .form-check-label {
+        cursor: pointer;
+        padding-left: 0.2rem;
+    }
+
+    .input-group {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        transition: all 0.2s ease;
+        margin-bottom: 1.2rem;
+    }
+
+    .input-group:focus-within {
+        box-shadow: 0 4px 12px rgba(230, 126, 34, 0.15);
+    }
+    
+    /* Style for the icon containers */
+    .input-group-text i {
+        color: #e67e22;
+        font-size: 1rem;
+    }
+
+    .input-group-text {
+        background-color: #f9f5e7;
+        border: 1px solid #e9ecef;
+        border-right: none;
+        color: #6c757d;
+        padding-left: 1rem;
+        padding-right: 1rem;
+        width: 50px;
+        display: flex;
+        justify-content: center;
+    }
+
+    .form-control {
+        border-radius: 0 0.5rem 0.5rem 0;
+        border: 1px solid #e9ecef;
+        padding: 0.6rem 1rem;
+        font-size: 1rem;
+        transition: all 0.2s ease;
+    }
+
+    .form-control:focus {
+        box-shadow: none;
+        border-color: #e67e22;
+    }
+
+    .form-control::placeholder {
+        color: #adb5bd;
+        font-size: 0.9rem;
+    }
+
+    .btn-primary {
+        background: linear-gradient(to right, #e67e22, #f39c12);
+        border: none;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        box-shadow: 0 4px 12px rgba(230, 126, 34, 0.2);
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(to right, #d35400, #e67e22);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(230, 126, 34, 0.3);
+    }
+
+    .btn-primary:active {
+        transform: translateY(0);
+    }
+
+    .card-footer {
+        background-color: #f9f5e7;
+        font-size: 0.85rem;
+        color: #6c757d;
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .card-footer i {
+        color: #e67e22;
+    }
+
+    #bank_details, #upi_details {
+        transition: all 0.3s ease;
+    }
+
+    .note-text {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin-top: 0.5rem;
+    }
+
+    .gurudakshina-title {
+        text-align: center;
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.2rem;
+        color: #1a2639;
+    }
+
+    .gurudakshina-subtitle {
+        text-align: center;
+        font-size: 1.2rem;
+        margin-bottom: 1rem;
+        color: #1a2639;
+    }
+
+    .info-text {
+        font-size: 0.9rem;
+        color: #6c757d;
+        background-color: #fff9e6;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        border-left: 4px solid #e67e22;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Responsive tweaks */
+    @media (max-width: 576px) {
+        .profile-header h4 {
+            font-size: 1.2rem;
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+    }
+</style>
+
+<div class="container my-5">
+    <div class="card-custom">
+        <div class="profile-header">
+            <div class="logo-container">
+                <img src="{{ url_for('static', filename='profile_picture.jpg') }}" alt="Profile Photo" class="logo-img">
+            </div>
+            <div class="gurudakshina-title">GURUDAKSHINA</div>
+            <div class="gurudakshina-subtitle">THE GRATITUDE FUND</div>
+            <h4>Welcome, {{ session.first_name }}</h4>
+            <p class="mb-0">{{ session.email }}</p>
+        </div>
+
+        <div class="card-body">
+            <h5 class="section-title"><i class="fa-solid fa-hand-holding-heart"></i> Receive Contributions</h5>
+            <div class="info-text">
+                <strong>For Educators:</strong> Please provide your preferred payment details to receive Gurudakshina contributions from your grateful students. Your information will be securely stored.
+            </div>
+            
+            <form method="POST">
+                <div class="mb-4">
+                    <label class="form-label">Select Your Preferred Receiving Method:</label>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="payment_method" id="bank_transfer" value="bank"
+                            checked>
+                        <label class="form-check-label" for="bank_transfer">Bank Transfer</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="payment_method" id="upi" value="upi">
+                        <label class="form-check-label" for="upi">UPI</label>
+                    </div>
+                </div>
+
+                <div id="bank_details">
+                    <p class="note-text mb-3">Fill in the fields you have information for. You don't need to complete all fields.</p>
+                    
+                    <div class="input-group mb-3">
+                        <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
+                        <input type="text" class="form-control" id="account_holder_name" name="account_holder_name"
+                            placeholder="Account Holder Name">
+                    </div>
+
+                    <div class="input-group mb-3">
+                        <span class="input-group-text"><i class="fa-solid fa-hashtag"></i></span>
+                        <input type="text" class="form-control" id="account_number" name="account_number"
+                            placeholder="Account Number" pattern="\d{9,18}">
+                        <div class="invalid-feedback">Account number should be 9–18 digits.</div>
+                    </div>
+
+                    <div class="input-group mb-3">
+                        <span class="input-group-text"><i class="fa-solid fa-code"></i></span>
+                        <input type="text" class="form-control" id="ifsc_code" name="ifsc_code" placeholder="IFSC Code"
+                            pattern="^[A-Z]{4}0[A-Z0-9]{6}$">
+                        <div class="invalid-feedback">IFSC code format: SBIN0001234</div>
+                    </div>
+
+                    <div class="input-group mb-4">
+                        <span class="input-group-text"><i class="fa-solid fa-building-columns"></i></span>
+                        <input type="text" class="form-control" id="bank_name" name="bank_name" placeholder="Bank Name">
+                    </div>
+                </div>
+
+                <div id="upi_details" style="display: none;">
+                    <p class="note-text mb-3">Enter your UPI ID to receive Gurudakshina contributions.</p>
+                    
+                    <div class="input-group mb-4">
+                        <span class="input-group-text"><i class="fa-solid fa-mobile-screen"></i></span>
+                        <input type="text" class="form-control" id="upi_id" name="upi_id" placeholder="yourname@upi"
+                            pattern="^[\w.-]+@[\w]{3,}$">
+                        <div class="invalid-feedback">Enter a valid UPI ID (e.g., yourname@upi).</div>
+                    </div>
+                </div>
+
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary mt-3 py-3">Save Your Details</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="card-footer text-center">
+            <i class="fa-solid fa-lock"></i> Your information is securely encrypted and stored. Only accessible to verified students wanting to express gratitude.
+        </div>
+    </div>
+</div>
+
+<script>
+    const bankRadio = document.getElementById('bank_transfer');
+    const upiRadio = document.getElementById('upi');
+    const bankDetails = document.getElementById('bank_details');
+    const upiDetails = document.getElementById('upi_details');
+
+    function togglePaymentFields() {
+        if (bankRadio.checked) {
+            bankDetails.style.display = 'block';
+            upiDetails.style.display = 'none';
+        } else {
+            bankDetails.style.display = 'none';
+            upiDetails.style.display = 'block';
+        }
+    }
+
+    bankRadio.addEventListener('change', togglePaymentFields);
+    upiRadio.addEventListener('change', togglePaymentFields);
+    togglePaymentFields();
+
+    // Form validation - keeping it lightweight
+    (function () {
+        'use strict'
+        const forms = document.querySelectorAll('form')
+        Array.from(forms).forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                // Only validate pattern attributes
+                const inputs = form.querySelectorAll('input[pattern]');
+                let isValid = true;
+                
+                inputs.forEach(input => {
+                    if (input.value.trim() !== '' && !input.checkValidity()) {
+                        input.classList.add('is-invalid');
+                        isValid = false;
+                    } else {
+                        input.classList.remove('is-invalid');
+                    }
+                });
+                
+                if (!isValid) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+            }, false);
+            
+            // Clear validation on input change
+            const inputs = form.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.addEventListener('input', function() {
+                    this.classList.remove('is-invalid');
+                });
+            });
+        });
+    })();
+
+    // Add subtle animations for form elements
+    const formInputs = document.querySelectorAll('.form-control');
+    formInputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            this.parentElement.style.transform = 'translateY(-2px)';
+        });
+        
+        input.addEventListener('blur', function() {
+            this.parentElement.style.transform = 'translateY(0)';
+        });
+    });
+</script>
+{% endblock %}

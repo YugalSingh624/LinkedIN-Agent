@@ -24,8 +24,8 @@
                         </p>
                     </div>
                     <div class="col-md-3 text-md-end mt-3 mt-md-0">
-                        <a href="{{ session.get('linkedin_url', '#') }}" target="_blank" class="linkedin-btn">
-                            <i class="bi bi-linkedin me-2"></i>LinkedIn Profile
+                        <a href="{{ url_for('user_profile_view') }}" class="linkedin-btn">
+                            <i class="bi bi-person me-2"></i>My Profile
                         </a>
                     </div>
                 </div>
@@ -36,7 +36,7 @@
             <div class="content-container">
                 <!-- Education/Experience Section based on role -->
                 <div class="mb-5">
-                    {% if session.get('role', '').lower() in ['teacher', 'professor', 'principal'] %}
+                    {% if session.get('role', '').lower() in ['teacher', 'professor', 'principal', 'mentor'] %}
                     <h2 class="section-header">
                         <i class="bi bi-briefcase me-2"></i>Experience
                     </h2>
@@ -52,7 +52,8 @@
 
                                 <div class="timeline-badge">
                                     {{ exp.get("StartDate", " ") }} -
-                                    {{ exp.get("EndDate", "Present") if not exp.get("EndDate") else exp.get("EndDate") }}
+                                    {{ exp.get("EndDate", "Present") if not exp.get("EndDate") else exp.get("EndDate")
+                                    }}
                                 </div>
                             </div>
                         </div>
@@ -105,7 +106,7 @@
                     <div class="row mb-4">
                         <div class="col-md-8">
                             <div class="selector-card">
-                                {% if session.get('role', '').lower() in ['teacher', 'professor', 'principal'] %}
+                                {% if session.get('role', '').lower() in ['teacher', 'professor', 'principal', 'mentor'] %}
                                 <h5 class="selector-title">Select Experience</h5>
                                 <p class="selector-desc">Choose which organization to search for connections:</p>
                                 <select class="form-select custom-select" id="education-selector">
@@ -121,7 +122,8 @@
                                 </select>
                                 {% else %}
                                 <h5 class="selector-title">Select Education</h5>
-                                <p class="selector-desc">Choose which educational institution to search for connections:</p>
+                                <p class="selector-desc">Choose which educational institution to search for connections:
+                                </p>
                                 <select class="form-select custom-select" id="education-selector">
                                     {% if session.get("education_details") %}
                                     {% for edu in session["education_details"] %}
@@ -237,7 +239,7 @@
         font-family: 'Inter', 'Segoe UI', sans-serif;
         color: #333;
     }
-    
+
     /* Profile header */
     .profile-header-bg {
         background: linear-gradient(135deg, #537895 0%, #09203f 100%);
@@ -248,7 +250,7 @@
         left: 0;
         z-index: 0;
     }
-    
+
     .profile-image-container {
         width: 120px;
         height: 120px;
@@ -259,24 +261,24 @@
         background-color: #fff;
         transition: transform 0.3s ease;
     }
-    
+
     .profile-image-container:hover {
         transform: scale(1.05);
     }
-    
+
     .profile-image {
         width: 100%;
         height: 100%;
         object-fit: cover;
     }
-    
+
     .profile-email {
         color: rgba(255, 255, 255, 0.9);
         font-size: 1rem;
         display: flex;
         align-items: center;
     }
-    
+
     .linkedin-btn {
         background-color: #ffffff;
         color: #0A66C2;
@@ -290,18 +292,18 @@
         align-items: center;
         box-shadow: 0 4px 10px rgba(10, 102, 194, 0.1);
     }
-    
+
     .linkedin-btn:hover {
         background-color: #f0f7ff;
         box-shadow: 0 6px 12px rgba(10, 102, 194, 0.15);
         transform: translateY(-3px);
     }
-    
+
     /* Content container */
     .content-container {
         padding: 2.5rem;
     }
-    
+
     /* Section headers */
     .section-header {
         font-size: 1.4rem;
@@ -313,18 +315,18 @@
         display: flex;
         align-items: center;
     }
-    
+
     .section-header i {
         color: #537895;
     }
-    
+
     /* Timeline design for education/experience */
     .timeline-container {
         position: relative;
         padding-left: 1rem;
         margin-top: 2rem;
     }
-    
+
     .timeline-item {
         position: relative;
         padding-bottom: 2rem;
@@ -332,12 +334,12 @@
         border-left: 2px solid #edf2f7;
         margin-left: 0.5rem;
     }
-    
+
     .timeline-item:last-child {
         padding-bottom: 0.5rem;
         border-left: 2px solid transparent;
     }
-    
+
     .timeline-item:before {
         content: '';
         position: absolute;
@@ -350,7 +352,7 @@
         border: 2px solid #fff;
         box-shadow: 0 0 0 4px rgba(83, 120, 149, 0.1);
     }
-    
+
     .timeline-content {
         background-color: #fff;
         border-radius: 12px;
@@ -358,26 +360,26 @@
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
         transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
-    
+
     .timeline-content:hover {
         transform: translateY(-3px);
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
     }
-    
+
     .item-title {
         color: #09203f;
         font-weight: 600;
         font-size: 1.1rem;
         margin-bottom: 0.5rem;
     }
-    
+
     .item-subtitle {
         color: #537895;
         font-weight: 500;
         font-size: 1rem;
         margin-bottom: 0.5rem;
     }
-    
+
     .item-location {
         color: #64748b;
         font-size: 0.9rem;
@@ -385,7 +387,7 @@
         display: flex;
         align-items: center;
     }
-    
+
     .item-location:before {
         content: '\F4E7';
         font-family: 'bootstrap-icons';
@@ -393,7 +395,7 @@
         font-size: 0.85rem;
         color: #94a3b8;
     }
-    
+
     .timeline-badge {
         display: inline-block;
         background-color: #f1f5f9;
@@ -403,7 +405,7 @@
         font-size: 0.8rem;
         font-weight: 500;
     }
-    
+
     /* Selector card */
     .selector-card {
         background-color: #fff;
@@ -412,23 +414,23 @@
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
         transition: transform 0.3s ease;
     }
-    
+
     .selector-card:hover {
         transform: translateY(-3px);
     }
-    
+
     .selector-title {
         font-weight: 600;
         color: #09203f;
         margin-bottom: 0.5rem;
     }
-    
+
     .selector-desc {
         color: #64748b;
         font-size: 0.9rem;
         margin-bottom: 1.25rem;
     }
-    
+
     .custom-select {
         border: 1px solid #e2e8f0;
         border-radius: 10px;
@@ -438,13 +440,13 @@
         color: #475569;
         background-color: #f8fafc;
     }
-    
+
     .custom-select:focus {
         border-color: #537895;
         box-shadow: 0 0 0 3px rgba(83, 120, 149, 0.1);
         background-color: #fff;
     }
-    
+
     /* Alert and message styles */
     .alert-minimal {
         background-color: #f0f9ff;
@@ -456,28 +458,28 @@
         align-items: center;
         border-left: 4px solid #0ea5e9;
     }
-    
+
     .empty-state {
         text-align: center;
         padding: 4rem 0;
     }
-    
+
     .empty-state i {
         font-size: 3.5rem;
         color: #cbd5e1;
         margin-bottom: 1.5rem;
     }
-    
+
     .empty-state h4 {
         color: #94a3b8;
         font-weight: 500;
     }
-    
+
     .loading-container {
         text-align: center;
         padding: 4rem 0;
     }
-    
+
     .spinner {
         display: inline-block;
         width: 3.5rem;
@@ -488,21 +490,23 @@
         animation: spin 1s ease-in-out infinite;
         margin-bottom: 2rem;
     }
-    
+
     @keyframes spin {
-        to { transform: rotate(360deg); }
+        to {
+            transform: rotate(360deg);
+        }
     }
-    
+
     .loading-text {
         color: #334155;
         font-weight: 500;
         margin-bottom: 0.5rem;
     }
-    
+
     .loading-subtext {
         color: #64748b;
     }
-    
+
     .error-message {
         background-color: #fef2f2;
         color: #b91c1c;
@@ -513,7 +517,7 @@
         align-items: center;
         border-left: 4px solid #ef4444;
     }
-    
+
     .search-results-info {
         color: #64748b;
         font-weight: 500;
@@ -521,20 +525,20 @@
         display: flex;
         align-items: center;
     }
-    
+
     .search-results-info:before {
         content: '\F52A';
         font-family: 'bootstrap-icons';
         margin-right: 0.5rem;
         color: #537895;
     }
-    
+
     /* Modal customization */
     .modal-content {
         border-radius: 14px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     }
-    
+
     .custom-textarea {
         border: 1px solid #e2e8f0;
         border-radius: 10px;
@@ -543,13 +547,13 @@
         transition: all 0.3s ease;
         background-color: #f8fafc;
     }
-    
+
     .custom-textarea:focus {
         border-color: #537895;
         box-shadow: 0 0 0 3px rgba(83, 120, 149, 0.1);
         background-color: #fff;
     }
-    
+
     .save-btn {
         background-color: #537895;
         border: none;
@@ -558,13 +562,13 @@
         font-weight: 500;
         transition: all 0.3s ease;
     }
-    
+
     .save-btn:hover {
         background-color: #09203f;
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(9, 32, 63, 0.2);
     }
-    
+
     /* Toast styling */
     .toast {
         background-color: #fff;
@@ -572,14 +576,14 @@
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         border: none;
     }
-    
+
     /* Student/Alumni cards that will be created via JS */
     .alumni-card {
         transition: all 0.3s ease;
         border-radius: 12px !important;
         overflow: hidden;
     }
-    
+
     .alumni-card:hover {
         transform: translateY(-5px);
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08) !important;
@@ -757,19 +761,19 @@
                 }
             </style>
         `);
-        
+
         // Add enhancement for profile cards that will be created by JS
         // This assumes that the profile.js file creates cards with specific classes
-        document.addEventListener('DOMNodeInserted', function(e) {
+        document.addEventListener('DOMNodeInserted', function (e) {
             if (e.target.className === 'card h-100 shadow-sm alumni-card') {
                 e.target.classList.add('profile-card');
-                
+
                 // Find and enhance the profile picture if it exists
                 const profilePic = e.target.querySelector('.alumni-pic');
                 if (profilePic) {
                     profilePic.classList.add('profile-pic');
                 }
-                
+
                 // Enhance action buttons if they exist
                 const actionButtons = e.target.querySelectorAll('.btn');
                 actionButtons.forEach(btn => {

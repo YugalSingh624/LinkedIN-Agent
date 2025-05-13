@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alumni Connect | Login</title>
+    <title>Gurudakshina | The Gratitude Fund</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <style>
         body {
-            background-color: #f8f9fa;
+            background-color: #f8f3e2;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #0a192f;
         }
-        .login-container {
+        .main-container {
             max-width: 800px;
             margin: 0 auto;
             padding: 2rem;
@@ -18,21 +19,51 @@
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
+        .logo-container {
+            text-align: center;
+            margin-bottom: 0.5rem; /* Reduced from 1.5rem to 0.5rem */
+        }
+        .logo {
+            width: 180px; /* Increased from 120px to 180px */
+            height: auto;
+            margin-bottom: 0.5rem; /* Reduced from 1.5rem to 0.5rem */
+        }
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            text-align: center;
+            color: #0a192f;
+            margin-bottom: 0.5rem;
+        }
+        .page-subtitle {
+            font-size: 1.5rem;
+            font-weight: 500;
+            text-align: center;
+            color: #0a192f;
+            margin-bottom: 1.5rem;
+        }
+        .page-description {
+            font-size: 1.25rem;
+            text-align: center;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
         .role-card {
             cursor: pointer;
             width: 220px;
-            border: 1px solid #e9ecef;
+            border: 2px solid transparent;
             border-radius: 10px;
             transition: all 0.2s ease;
             overflow: hidden;
+            background-color: #fff;
         }
         .role-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 5px 15px rgba(0,0,0,0.08);
         }
         .role-card.selected {
-            border: 2px solid #0d6efd;
-            background-color: #f0f7ff;
+            border: 2px solid #e67e22;
+            background-color: #fff8f0;
         }
         .role-icon {
             width: 60px;
@@ -40,7 +71,7 @@
             margin: 0 auto 1rem;
             padding: 12px;
             border-radius: 50%;
-            background-color: #f0f7ff;
+            background-color: #fff8f0;
         }
         .role-title {
             font-weight: 600;
@@ -48,7 +79,7 @@
         }
         .role-description {
             font-size: 0.85rem;
-            color: #6c757d;
+            color: #4a5568;
         }
         .linkedin-input {
             border: none;
@@ -58,11 +89,33 @@
             transition: all 0.3s;
         }
         .linkedin-input:focus {
-            border-bottom: 2px solid #0d6efd;
+            border-bottom: 2px solid #e67e22;
             box-shadow: none;
         }
+        .btn-primary {
+            background-color: #e67e22;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 10px 24px;
+            font-weight: 500;
+            transition: all 0.3s;
+            margin: 0 5px;
+        }
+        .btn-primary:hover {
+            background-color: #d35400;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(230, 126, 34, 0.25);
+        }
+        .form-label {
+            color: #2d3748;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1rem;
+        }
         .continue-btn {
-            background-color: #0d6efd;
+            background-color: #e67e22;
             color: white;
             border: none;
             border-radius: 50px;
@@ -71,33 +124,30 @@
             transition: all 0.3s;
         }
         .continue-btn:hover {
-            background-color: #0b5ed7;
+            background-color: #d35400;
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(13, 110, 253, 0.25);
-        }
-        .page-title {
-            color: #212529;
-            font-weight: 600;
-        }
-        .page-subtitle {
-            color: #6c757d;
-            font-weight: 400;
-        }
-        .form-label {
-            color: #495057;
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 1rem;
+            box-shadow: 0 4px 8px rgba(230, 126, 34, 0.25);
         }
     </style>
 </head>
 <body>
     <div class="container mt-5 mb-5">
-        <div class="login-container">
-            <h2 class="page-title text-center mb-2">Alumni Connect</h2>
-            <p class="page-subtitle text-center mb-4">Build meaningful connections with your college network</p>
+        <div class="main-container">
+            <!-- Logo - Updated to use image from static/project_logo.png with increased size -->
+            <div class="logo-container">
+                <img src="static/project_logo.png" alt="Gurudakshina Logo" class="logo">
+            </div>
             
+            <!-- Title and Subtitle -->
+            <h1 class="page-title">GURUDAKSHINA</h1>
+            <h2 class="page-subtitle">THE GRATITUDE FUND</h2>
+            
+            <!-- Description -->
+            <p class="page-description">
+                Honor the mentors who shaped your life. From KG to PG, thank them now.
+            </p>
+            
+            <!-- Form -->
             <form id="loginForm" method="POST" action="{{ url_for('handle_login') }}" class="mt-4">
                 <!-- LinkedIn Input -->
                 <div class="mb-4">
@@ -110,21 +160,21 @@
                         <input type="text" id="name" name="name" class="form-control linkedin-input" placeholder="Your LinkedIn profile URL" required>
                     </div>
                 </div>
-                
+
                 <!-- Role Selection -->
                 <div class="mb-4">
                     <label class="form-label text-center d-block">Choose your role</label>
-                    <div class="d-flex justify-content-center gap-4">
+                    <div class="d-flex justify-content-center gap-4 flex-wrap">
                         
                         <!-- Teacher Card -->
                         <label class="role-card" id="teacherCard">
-                            <input class="form-check-input d-none" type="radio" name="role" value="teacher" id="roleTeacher" required>
+                            <input class="form-check-input d-none" type="radio" name="role" value="mentor" id="roleTeacher" required>
                             <div class="card-body text-center p-4">
                                 <div class="role-icon">
-                                    <img src="https://cdn-icons-png.flaticon.com/512/201/201612.png" alt="Teacher" width="36">
+                                    <img src="https://cdn-icons-png.flaticon.com/512/201/201612.png" alt="Mentor" width="36">
                                 </div>
-                                <h6 class="role-title">Educator</h6>
-                                <p class="role-description mb-0">Connect with your students and expand your academic network</p>
+                                <h6 class="role-title">Mentor</h6>
+                                <p class="role-description mb-0">Register as a teacher or mentor who has guided students</p>
                             </div>
                         </label>
                 
@@ -136,7 +186,7 @@
                                     <img src="https://cdn-icons-png.flaticon.com/512/3135/3135768.png" alt="Student" width="36">
                                 </div>
                                 <h6 class="role-title">Student</h6>
-                                <p class="role-description mb-0">Connect with faculty and fellow alumni for career opportunities</p>
+                                <p class="role-description mb-0">Express gratitude to teachers who shaped your journey</p>
                             </div>
                         </label>
                     </div>
@@ -144,7 +194,7 @@
                 
                 <!-- Submit Button -->
                 <div class="text-center mt-4">
-                    <button type="submit" class="continue-btn">
+                    <button type="submit" class="btn btn-primary continue-btn">
                         Continue with LinkedIn
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-right ms-2" viewBox="0 0 16 16">
                             <path fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"/>
@@ -157,17 +207,29 @@
                     ⚠️ Please fill in all required fields before continuing.
                 </p>
             </form>
+
+            <!-- About Section -->
+            <div class="mt-5">
+                <h3 class="text-center mb-3">ABOUT THE PROGRAM</h3>
+                <p class="text-center">
+                    Gurudakshina is a platform to find and thank the mentors who built you up. 
+                    Contributions are distributed fairly and transparently to educators in need.
+                </p>
+            </div>
         </div>
     </div>
 
     <script>
-        // Script to handle role card selection
         document.addEventListener('DOMContentLoaded', function() {
             const teacherCard = document.getElementById('teacherCard');
             const studentCard = document.getElementById('studentCard');
             const roleTeacher = document.getElementById('roleTeacher');
             const roleStudent = document.getElementById('roleStudent');
+            const nameInput = document.getElementById('name');
+            const warningMessage = document.getElementById('warningMessage');
+            const loginForm = document.getElementById('loginForm');
             
+            // Role card selection
             teacherCard.addEventListener('click', function() {
                 teacherCard.classList.add('selected');
                 studentCard.classList.remove('selected');
@@ -181,13 +243,13 @@
             });
             
             // Validate form before submission
-            document.getElementById('loginForm').addEventListener('submit', function(event) {
-                const linkedinInput = document.getElementById('name').value;
+            loginForm.addEventListener('submit', function(event) {
+                const linkedinInput = nameInput.value.trim();
                 const roleSelected = roleTeacher.checked || roleStudent.checked;
                 
                 if (!linkedinInput || !roleSelected) {
                     event.preventDefault();
-                    document.getElementById('warningMessage').style.display = 'block';
+                    warningMessage.style.display = 'block';
                 }
             });
         });

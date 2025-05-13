@@ -222,9 +222,7 @@ def perform_connection_search(user_id, name, role, search_key, start_date, end_d
 
 @app.route("/callback")
 def callback():
-    """
-    Handles LinkedIn OAuth callback.
-    """
+    """ Handles LinkedIn OAuth callback. """
     # Check if user explicitly logged out
     if session.get("logged_out"):
         # Clear the flag
@@ -232,9 +230,8 @@ def callback():
         # Redirect to home with message
         flash("You have been logged out. Please log in again to continue.", "info")
         return redirect(url_for("home"))
-    
+
     # Rest of the callback logic...
-    
     code = request.args.get("code")
     if not code:
         return "Error: No authorization code received", 400
@@ -246,12 +243,11 @@ def callback():
         "client_id": CLIENT_ID,
         "client_secret": CLIENT_SECRET,
     }
-    
+
     try:
         response = requests.post(TOKEN_URL, data=data)
         response.raise_for_status()
         token_json = response.json()
-
         access_token = token_json.get("access_token")
 
         if not access_token:
@@ -260,13 +256,15 @@ def callback():
         headers = {"Authorization": f"Bearer {access_token}"}
         profile_response = requests.get(PROFILE_URL, headers=headers)
         profile_data = profile_response.json()
-        
+
         # Extract user details safely
         session["first_name"] = profile_data.get("given_name", "Unknown")
         session["last_name"] = profile_data.get("family_name", "Unknown")
         session["email"] = profile_data.get("email", "Not Available")
-        
-        session["linkedin_url"] = session["education"]
+        session["linkedin_url"] = session["education"]  # This should be the LinkedIn URL provided in the form
+
+        # Fetch comprehensive LinkedIn profile data
+        linkedin_profile_data = fetch_linkedin_profile_data(session["linkedin_url"])
 
         # Fetch education and experience details
         education_details, experience_details = fetch_education_experience_details(session["linkedin_url"])
@@ -287,7 +285,30 @@ def callback():
 
         # Initialize background tasks for this user
         background_tasks[user_id] = {}
+
+        # Get user role from session
+        user_role = session.get('role', '')
         
+        # Create a unique identifier based on email and role
+        unique_identifier = f"{session['email']}_{user_role}"
+
+        # Create a comprehensive user data document
+        user_data = {
+            'user_id': user_id,
+            'unique_identifier': unique_identifier,
+            'email': session['email'],
+            'first_name': session['first_name'],
+            'last_name': session['last_name'],
+            'role': user_role,
+            'linkedin_url': session.get('linkedin_url', ''),
+            'profile_picture': session.get('profile_picture', ''),
+            'education_details': education_details,
+            'experience_details': experience_details,
+            'linkedin_profile_data': linkedin_profile_data,
+            'last_login': datetime.now(),
+            'last_updated': datetime.now()
+        }
+
         # Now check if there was an invite token and process it
         invite_token = session.pop("invite_token", None)
         redirect_to_shared = False
@@ -296,26 +317,19 @@ def callback():
             try:
                 # Find the invitation in database
                 invite = db.invites.find_one({'token': invite_token, 'used': False})
-                
                 if invite:
-                    # Record this as a successful referral in the user's profile
-                    db.users.update_one(
-                        {'user_id': user_id}, 
-                        {
-                            '$set': {
-                                'referred_by': invite['created_by'],
-                                'referral_date': datetime.now()
-                            }
-                        },
-                        upsert=True  # Create user record if it doesn't exist
-                    )
-                    
+                    # Add referral data to user document
+                    user_data.update({
+                        'referred_by': invite['created_by'],
+                        'referral_date': datetime.now()
+                    })
+
                     # Mark the invite as used
                     db.invites.update_one(
-                        {'token': invite_token}, 
+                        {'token': invite_token},
                         {
                             '$set': {
-                                'used': True, 
+                                'used': True,
                                 'used_by': user_id,
                                 'used_by_name': f"{session['first_name']} {session['last_name']}",
                                 'used_at': datetime.now(),
@@ -323,21 +337,54 @@ def callback():
                             }
                         }
                     )
-                    
+
                     # Increment a referral count for the inviter
                     db.users.update_one(
-                        {'user_id': invite['created_by']}, 
+                        {'user_id': invite['created_by']},
                         {'$inc': {'referral_count': 1}}
                     )
-                    
+
                     # Store a flash message to show on the profile page
                     flash("You've joined via an invitation. Welcome to our platform!", "success")
-                    
+
                     # Set flag to redirect to shared profiles
                     redirect_to_shared = True
             except Exception as e:
                 # Log the error but don't interrupt the user flow
                 print(f"Error processing invite token: {e}")
+
+        # Check if user already exists with this unique identifier
+        existing_user = db.users.find_one({'unique_identifier': unique_identifier})
+        if existing_user:
+            # Update existing user information
+            db.users.update_one(
+                {'unique_identifier': unique_identifier},
+                {'$set': user_data}
+            )
+        else:
+            # Insert new user
+            db.users.insert_one(user_data)
+
+        # Check if this is an educator who needs to provide bank details
+        is_educator = user_role.lower() in ["teacher", "professor", "principal", "mentor"]
+        
+        if is_educator:
+            # Check if bank details already exist for this user
+            bank_details = db.bank_details.find_one({'unique_identifier': unique_identifier})
+            
+            if not bank_details:
+                # If no bank details exist, redirect to the bank details page
+                if redirect_to_shared and invite_token:
+                    # Store the invite token for after bank details are provided
+                    session["post_bank_details_redirect"] = f"/shared_profiles/{invite_token}"
+                return redirect(url_for("bank_details"))
+            else:
+                # Update user_data with existing bank details
+                user_data['bank_details'] = bank_details
+                db.users.update_one(
+                    {'unique_identifier': unique_identifier},
+                    {'$set': {'bank_details': bank_details}}
+                )
 
         # Redirect based on invitation status
         if redirect_to_shared and invite_token:
@@ -424,6 +471,344 @@ def fetch_education_experience_details(profile_link):
         experience_details.append(experience_dict)
 
     return education_details, experience_details
+
+
+def fetch_linkedin_profile_data(profile_link):
+    """
+    Fetches comprehensive profile data from Lix IT API
+    
+    Args:
+        profile_link: LinkedIn profile URL
+        
+    Returns:
+        Dictionary containing all available profile data
+    """
+    url = f"https://api.lix-it.com/v1/person?profile_link={profile_link}"
+    
+    payload = {}
+    headers = {
+        'Authorization': lix_it_api
+    }
+    
+    response = requests.request("GET", url, headers=headers, data=payload)
+    data = response.json()
+    
+    # Create result dictionary
+    profile_data = {}
+    
+    # Extract basic profile information
+    profile_data['basic_info'] = {
+        'first_name': data.get('firstName', ''),
+        'last_name': data.get('lastName', ''),
+        'full_name': data.get('name', ''),
+        'description': data.get('description', ''),
+        'about_summary': data.get('aboutSummaryText', ''),
+        'profile_image': data.get('img', ''),
+        'linkedin_url': data.get('link', ''),
+        'sales_nav_link': data.get('salesNavLink', ''),
+        'location': data.get('location', ''),
+        'connections': data.get('numOfConnections', ''),
+        'twitter': data.get('twitter', '')
+    }
+    
+    # Extract birth date if available
+    if 'birthDate' in data:
+        profile_data['basic_info']['birth_date'] = {
+            'day': data['birthDate'].get('day', ''),
+            'month': data['birthDate'].get('month', '')
+        }
+    
+    # Extract education details
+    profile_data['education'] = []
+    for edu in data.get('education', []):
+        education_entry = {
+            'institution_name': edu.get('institutionName', ''),
+            'degree': edu.get('degree', ''),
+            'field_of_study': edu.get('fieldOfStudy', ''),
+            'date_started': edu.get('dateStarted', ''),
+            'date_ended': edu.get('dateEnded', '')
+        }
+        
+        # Add organization info if available
+        if 'organisation' in edu:
+            education_entry['organization'] = {
+                'name': edu['organisation'].get('name', ''),
+                'link': edu['organisation'].get('link', '')
+            }
+        
+        # Add detailed time period if available
+        if 'timePeriod' in edu:
+            time_period = edu['timePeriod']
+            if 'startedOn' in time_period:
+                education_entry['started_on'] = {
+                    'year': time_period['startedOn'].get('year', ''),
+                    'month': time_period['startedOn'].get('month', '')
+                }
+            if 'endedOn' in time_period:
+                education_entry['ended_on'] = {
+                    'year': time_period['endedOn'].get('year', ''),
+                    'month': time_period['endedOn'].get('month', '')
+                }
+        
+        profile_data['education'].append(education_entry)
+    
+    # Extract experience details
+    profile_data['experience'] = []
+    for exp in data.get('experience', []):
+        experience_entry = {
+            'title': exp.get('title', ''),
+            'location': exp.get('location', ''),
+            'description': exp.get('description', ''),
+            'date_started': exp.get('dateStarted', ''),
+            'date_ended': exp.get('dateEnded', '')
+        }
+        
+        # Add organization info if available
+        if 'organisation' in exp:
+            experience_entry['organization'] = {
+                'name': exp['organisation'].get('name', ''),
+                'sales_nav_link': exp['organisation'].get('salesNavLink', '')
+            }
+        
+        # Add detailed time period if available
+        if 'timePeriod' in exp:
+            time_period = exp['timePeriod']
+            experience_entry['time_period'] = {}
+            
+            if 'startedOn' in time_period:
+                started_on = time_period['startedOn']
+                start_month = started_on.get('month', '')
+                start_year = started_on.get('year', '')
+                
+                experience_entry['time_period']['started_on'] = {
+                    'year': start_year,
+                    'month': start_month
+                }
+                
+                # Format start date
+                if start_month and start_year:
+                    experience_entry['formatted_start_date'] = f"{start_month}/{start_year}"
+                elif start_year:
+                    experience_entry['formatted_start_date'] = str(start_year)
+            
+            if 'endedOn' in time_period:
+                ended_on = time_period['endedOn']
+                # Check if endedOn is empty (indicating 'Present')
+                if not ended_on:
+                    experience_entry['formatted_end_date'] = 'Present'
+                else:
+                    end_month = ended_on.get('month', '')
+                    end_year = ended_on.get('year', '')
+                    
+                    experience_entry['time_period']['ended_on'] = {
+                        'year': end_year,
+                        'month': end_month
+                    }
+                    
+                    # Format end date
+                    if end_month and end_year:
+                        experience_entry['formatted_end_date'] = f"{end_month}/{end_year}"
+                    elif end_year:
+                        experience_entry['formatted_end_date'] = str(end_year)
+        
+        profile_data['experience'].append(experience_entry)
+    
+    # Extract skills
+    profile_data['skills'] = []
+    for skill in data.get('skills', []):
+        skill_entry = {
+            'name': skill.get('name', ''),
+            'endorsements': skill.get('numOfEndorsement', '0')
+        }
+        profile_data['skills'].append(skill_entry)
+    
+    # Extract languages
+    profile_data['languages'] = []
+    for language in data.get('languages', []):
+        language_entry = {
+            'name': language.get('name', ''),
+            'proficiency': language.get('proficiency', '')
+        }
+        profile_data['languages'].append(language_entry)
+    
+    # Extract publications
+    profile_data['publications'] = []
+    for pub in data.get('publications', []):
+        publication_entry = {
+            'name': pub.get('name', ''),
+            'description': pub.get('description', ''),
+            'url': pub.get('url', ''),
+            'publisher': pub.get('publisher', '')
+        }
+        
+        # Add published date if available
+        if 'publishedOn' in pub:
+            published_on = pub['publishedOn']
+            publication_entry['published_on'] = {
+                'year': published_on.get('year', ''),
+                'month': published_on.get('month', '')
+            }
+        
+        # Add authors if available
+        if 'authors' in pub:
+            publication_entry['authors'] = pub['authors']
+        
+        profile_data['publications'].append(publication_entry)
+    
+    # Add other optional sections if they exist
+    optional_sections = [
+        'certifications', 'volunteerExperience', 'projects', 
+        'awards', 'recommendations', 'courses', 
+        'interests', 'patents', 'honors'
+    ]
+    
+    for section in optional_sections:
+        if section in data:
+            profile_data[section] = data[section]
+    
+    return profile_data
+
+@app.route("/bank_details", methods=["GET", "POST"])
+def bank_details():
+    """ Page for educators to enter their bank details or UPI ID.
+    This page appears after LinkedIn login if the user is an educator and has no bank details.
+    """
+    if "user_id" not in session:
+        flash("Please log in first.", "warning")
+        return redirect(url_for("home"))
+
+    # Check if user is an educator
+    user_role = session.get("role", "").lower()
+    is_educator = user_role in ["teacher", "professor", "principal", "mentor"]
+    
+    if not is_educator:
+        # Non-educators skip this page
+        return redirect(url_for("profile"))
+
+    # Handle form submission
+    if request.method == "POST":
+        payment_method = request.form.get("payment_method")
+        user_id = session.get("user_id")
+        user_email = session.get("email")
+        user_role = session.get("role", "")
+        
+        # Create unique identifier
+        unique_identifier = f"{user_email}_{user_role}"
+        
+        bank_details = {
+            "user_id": user_id,
+            "unique_identifier": unique_identifier,
+            "email": user_email,
+            "payment_method": payment_method,
+            "created_at": datetime.now(),
+            "updated_at": datetime.now()
+        }
+
+        # Check if we have valid data before continuing
+        valid_submission = False
+        
+        if payment_method == "bank":
+            account_holder_name = request.form.get("account_holder_name", "").strip()
+            account_number = request.form.get("account_number", "").strip()
+            ifsc_code = request.form.get("ifsc_code", "").strip()
+            bank_name = request.form.get("bank_name", "").strip()
+            
+            # Add bank details if provided
+            if account_holder_name or account_number or ifsc_code or bank_name:
+                bank_details.update({
+                    "account_holder_name": account_holder_name,
+                    "account_number": account_number,
+                    "ifsc_code": ifsc_code,
+                    "bank_name": bank_name
+                })
+                valid_submission = True
+        else:  # UPI
+            upi_id = request.form.get("upi_id", "").strip()
+            
+            # Add UPI if provided
+            if upi_id:
+                bank_details.update({
+                    "upi_id": upi_id
+                })
+                valid_submission = True
+
+        # Store in database if we have valid data
+        if valid_submission:
+            try:
+                # Update if exists, insert if not
+                db.bank_details.update_one(
+                    {"unique_identifier": unique_identifier},
+                    {"$set": bank_details},
+                    upsert=True
+                )
+                
+                # Also update the user document with bank details
+                db.users.update_one(
+                    {"unique_identifier": unique_identifier},
+                    {"$set": {"bank_details": bank_details}}
+                )
+                
+                flash("Payment information saved successfully!", "success")
+                
+                # Check if we need to redirect somewhere special after bank details
+                post_redirect = session.get("post_bank_details_redirect")
+                if post_redirect:
+                    # Clear the special redirect
+                    session.pop("post_bank_details_redirect", None)
+                    return redirect(post_redirect)
+                else:
+                    return redirect(url_for("profile"))
+                    
+            except Exception as e:
+                flash(f"Error saving payment information: {str(e)}", "danger")
+        else:
+            flash("Please provide at least some payment information.", "warning")
+
+    return render_template("bank_details.html", session=session)
+
+@app.route("/user_profile_view")
+def user_profile_view():
+    """
+    Display comprehensive user profile information from the database.
+    Excludes bank details and requires user to be logged in.
+    """
+    # Check if user is logged in
+    if "user_id" not in session:
+        flash("Please log in to view your profile.", "warning")
+        return redirect(url_for("home"))
+    
+    # Retrieve user information from database
+    unique_identifier = f"{session['email']}_{session.get('role', '')}"
+    user_data = db.users.find_one({'unique_identifier': unique_identifier})
+    
+    if not user_data:
+        flash("User profile not found.", "danger")
+        return redirect(url_for("home"))
+    
+    # Prepare profile data (excluding bank details)
+    profile_data = {
+        'basic_info': {
+            'First Name': user_data.get('first_name', 'N/A'),
+            'Last Name': user_data.get('last_name', 'N/A'),
+            'Email': user_data.get('email', 'N/A'),
+            'Role': user_data.get('role', 'N/A'),
+            'LinkedIn URL': user_data.get('linkedin_url', 'N/A')
+        },
+        'profile_picture': user_data.get('profile_picture', 'static/default.jpg'),
+        'education_details': user_data.get('education_details', []),
+        'experience_details': user_data.get('experience_details', []),
+        'linkedin_profile_data': user_data.get('linkedin_profile_data', {})
+    }
+    
+    # Extract experience descriptions if available
+    if 'linkedin_profile_data' in user_data and 'experience' in user_data['linkedin_profile_data']:
+        for i, exp in enumerate(profile_data['experience_details']):
+            for linkedin_exp in user_data['linkedin_profile_data']['experience']:
+                if (exp['Title'] == linkedin_exp.get('title') and 
+                    exp['Organization'] == linkedin_exp.get('organization', {}).get('name')):
+                    profile_data['experience_details'][i]['description'] = linkedin_exp.get('description', '')
+    
+    return render_template("user_profile_view.html", profile_data=profile_data, now=datetime.now())
 
 @app.route("/start_search")
 def start_search():
@@ -778,11 +1163,39 @@ def invitation_coming_soon():
 @app.route("/profile")
 def profile():
     """
-    Displays the user profile.
+    User profile page that shows their data and provides options
     """
-    if "first_name" not in session:
+    if "user_id" not in session:
         flash("Please log in first.", "warning")
         return redirect(url_for("home"))
+        
+    # Get user details from session
+    user_id = session.get("user_id")
+    user_email = session.get("email")
+    user_role = session.get("role", "")
+    
+    # Create unique identifier
+    unique_identifier = f"{user_email}_{user_role}"
+    
+    # Check if user exists in database
+    existing_user = db.users.find_one({'unique_identifier': unique_identifier})
+    
+    if existing_user:
+        # Check when user last updated profile data
+        last_updated = existing_user.get('last_updated', datetime.min)
+        time_since_update = datetime.now() - last_updated
+        
+        # If it's been more than a day since last update, refresh data
+        if time_since_update.days > 0:
+            return redirect(url_for("update_profile"))
+    else:
+        # This shouldn't happen if callback is working correctly
+        # but just in case, redirect to home
+        flash("User profile not found. Please log in again.", "warning")
+        return redirect(url_for("home"))
+        
+    # Continue with normal profile rendering
+    # ... (your existing profile route code)
     
     return render_template("profile.html", session=session)
 
