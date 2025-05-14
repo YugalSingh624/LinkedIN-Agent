@@ -2,29 +2,33 @@
 {% block title %}Shared Profiles{% endblock %}
 
 {% block content %}
-<div class="container py-4">
+<div class="container py-3 py-md-4">
     <!-- Header -->
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-body px-4 py-3">
+    <div class="card border-0 shadow-sm mb-3 mb-md-4">
+        <div class="card-body px-3 px-md-4 py-3">
             <div class="row align-items-center">
-                <div class="col">
-                    <h1 class="mb-0">
+                <div class="col-12 col-md mb-2 mb-md-0">
+                    <h1 class="fs-3 fs-md-2 mb-1">
                         <i class="bi bi-people-fill text-primary me-2"></i>Shared Profiles
                     </h1>
-                    <p class="text-muted mb-0">Profiles shared by {{ inviter_name }}</p>
+                    <p class="text-muted mb-0 small">Profiles shared by {{ inviter_name }}</p>
                 </div>
-                <div class="col-auto">
+                <div class="col-12 col-md-auto">
                     {% if not session.get('user_id') %}
-                    <a href="{{ url_for('login') }}?invite={{ invite_token }}" class="btn btn-outline-primary me-2">
-                        <i class="bi bi-box-arrow-in-right me-1"></i>Login
-                    </a>
-                    <a href="{{ url_for('register') }}?invite={{ invite_token }}" class="btn btn-primary">
-                        <i class="bi bi-person-plus me-1"></i>Sign Up
-                    </a>
+                    <div class="d-grid d-md-block gap-2">
+                        <a href="{{ url_for('login') }}?invite={{ invite_token }}" class="btn btn-outline-primary btn-sm me-md-2">
+                            <i class="bi bi-box-arrow-in-right me-1"></i>Login
+                        </a>
+                        <a href="{{ url_for('register') }}?invite={{ invite_token }}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-person-plus me-1"></i>Sign Up
+                        </a>
+                    </div>
                     {% else %}
-                    <a href="{{ url_for('profile') }}" class="btn btn-outline-primary">
-                        <i class="bi bi-person-circle me-1"></i>My Profile
-                    </a>
+                    <div class="d-grid d-md-block">
+                        <a href="{{ url_for('profile') }}" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-person-circle me-1"></i>My Profile
+                        </a>
+                    </div>
                     {% endif %}
                 </div>
             </div>
@@ -33,8 +37,8 @@
     
     {% if profiles %}
         <!-- Search and Filter -->
-        <div class="row mb-4 g-2">
-            <div class="col-md-6">
+        <div class="row mb-3 mb-md-4 g-2">
+            <div class="col-12 col-md-6 mb-2 mb-md-0">
                 <div class="input-group">
                     <span class="input-group-text bg-white border-end-0">
                         <i class="bi bi-search text-muted"></i>
@@ -42,34 +46,34 @@
                     <input type="text" class="form-control border-start-0" id="profileSearch" placeholder="Search profiles..." onkeyup="filterProfiles()">
                 </div>
             </div>
-            <div class="col-md-6 text-end">
-                <div class="btn-group" role="group" aria-label="Filter profiles">
-                    <button type="button" class="btn btn-primary active filter-btn" data-filter="all">All</button>
-                    <button type="button" class="btn btn-outline-primary filter-btn" data-filter="faculty">Faculty</button>
-                    <button type="button" class="btn btn-outline-primary filter-btn" data-filter="students">Students</button>
+            <div class="col-12 col-md-6">
+                <div class="btn-group w-100 w-md-auto float-md-end" role="group" aria-label="Filter profiles">
+                    <button type="button" class="btn btn-primary btn-sm active filter-btn" data-filter="all">All</button>
+                    <button type="button" class="btn btn-outline-primary btn-sm filter-btn" data-filter="faculty">Faculty</button>
+                    <button type="button" class="btn btn-outline-primary btn-sm filter-btn" data-filter="students">Students</button>
                 </div>
             </div>
         </div>
         
         <!-- Profiles Grid -->
-        <div class="row row-cols-1 row-cols-md-3 g-4" id="saved-profiles-container">
+        <div class="row g-3 g-md-4" id="saved-profiles-container">
             {% for profile in profiles %}
-                <div class="col profile-card" 
+                <div class="col-12 col-sm-6 col-md-4 col-lg-3 profile-card" 
                      data-profile-type="{{ profile.profile_type }}" 
                      data-profile-name="{{ profile.name }}"
                      data-profile-id="{{ profile.link }}"
                      data-profile-institute="{{ profile.institute }}">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body p-4">
+                    <div class="card border-0 shadow-sm h-100" style="max-width: 300px; margin: 0 auto;">
+                        <div class="card-body p-3 p-md-4">
                             <div class="text-center mb-3">
-                                <div class="position-relative">
+                                <div class="position-relative d-inline-block">
                                     <i class="bi bi-person-circle text-{{ 'primary' if profile.profile_type == 'faculty' else 'success' }}" style="font-size: 3rem;"></i>
                                     <span class="position-absolute top-0 end-0 translate-middle badge rounded-pill bg-{{ 'primary' if profile.profile_type == 'faculty' else 'success' }}">
                                         {{ profile.profile_type|capitalize }}
                                     </span>
                                 </div>
                             </div>
-                            <h5 class="card-title text-center mb-1">{{ profile.name }}</h5>
+                            <h5 class="card-title text-center mb-1 fs-6">{{ profile.name }}</h5>
                             <p class="card-text text-muted small text-center mb-3">
                                 <i class="bi bi-building me-1"></i>{{ profile.institute }}
                             </p>
@@ -80,18 +84,19 @@
                             </p>
                             {% endif %}
                             
-                            <div class="d-flex mt-3">
-                                <a href="{{ profile.link }}" target="_blank" class="btn btn-outline-primary btn-sm flex-grow-1 me-2">
-                                    <i class="bi bi-linkedin me-1"></i>View Profile
+                            <div class="d-flex gap-2 mt-auto">
+                                <a href="{{ profile.link }}" target="_blank" class="btn btn-outline-primary btn-sm w-50">
+                                    <i class="bi bi-linkedin me-1"></i><span class="d-none d-md-inline">View </span>Profile
                                 </a>
                                 
                                 {% if session.get('user_id') %}
-                                <button class="btn btn-outline-success btn-sm flex-grow-1 save-profile-btn" 
+                                <button class="btn btn-outline-success btn-sm w-50 save-profile-btn" 
                                         data-profile-id="{{ profile._id }}"
                                         data-saved="{{ profile.is_saved|default(false)|lower }}"
                                         onclick="handleProfileSave(this, '{{ profile._id }}')">
                                     <i class="bi {{ 'bi-bookmark-check-fill' if profile.is_saved else 'bi-bookmark-plus' }}"></i>
-                                    Save to My Profiles
+                                    <span class="d-none d-md-inline">Save to My Profiles</span>
+                                    <span class="d-inline d-md-none">Save</span>
                                 </button>
                                 {% endif %}
                             </div>
@@ -102,20 +107,22 @@
         </div>
     {% else %}
         <!-- No shared profiles message -->
-        <div class="text-center py-5">
-            <i class="bi bi-share text-muted" style="font-size: 4rem;"></i>
-            <h3 class="mt-3 text-muted">No shared profiles available</h3>
-            <p class="text-muted">{{ inviter_name }} hasn't shared any profiles with this invitation.</p>
+        <div class="text-center py-4 py-md-5">
+            <i class="bi bi-share text-muted" style="font-size: 3rem;"></i>
+            <h3 class="mt-3 text-muted fs-4">No shared profiles available</h3>
+            <p class="text-muted small">{{ inviter_name }} hasn't shared any profiles with this invitation.</p>
             
             {% if not session.get('user_id') %}
             <div class="mt-4">
-                <p>Would you like to join our platform?</p>
-                <a href="{{ url_for('register') }}?invite={{ invite_token }}" class="btn btn-primary me-2">
-                    <i class="bi bi-person-plus me-2"></i>Sign Up
-                </a>
-                <a href="{{ url_for('login') }}?invite={{ invite_token }}" class="btn btn-outline-primary">
-                    <i class="bi bi-box-arrow-in-right me-2"></i>Login
-                </a>
+                <p class="small">Would you like to join our platform?</p>
+                <div class="d-flex flex-column flex-sm-row justify-content-center gap-2 mx-auto" style="max-width: 300px;">
+                    <a href="{{ url_for('register') }}?invite={{ invite_token }}" class="btn btn-primary btn-sm">
+                        <i class="bi bi-person-plus me-2"></i>Sign Up
+                    </a>
+                    <a href="{{ url_for('login') }}?invite={{ invite_token }}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>Login
+                    </a>
+                </div>
             </div>
             {% endif %}
         </div>
@@ -164,10 +171,39 @@ document.addEventListener('DOMContentLoaded', function() {
         if (button.getAttribute('data-saved') === 'true') {
             button.classList.remove('btn-outline-success');
             button.classList.add('btn-success');
-            button.innerHTML = '<i class="bi bi-bookmark-check-fill"></i> Saved to My Profiles';
+            
+            // Update button text based on screen size
+            const isSmallScreen = window.innerWidth < 576;
+            if (isSmallScreen) {
+                button.innerHTML = '<i class="bi bi-bookmark-check-fill"></i> Saved';
+            } else {
+                button.innerHTML = '<i class="bi bi-bookmark-check-fill"></i> Saved to My Profiles';
+            }
         }
     });
+    
+    // Add resize listener to update button text based on screen size
+    window.addEventListener('resize', updateSaveButtonText);
+    
+    // Initial update of button text
+    updateSaveButtonText();
 });
+
+function updateSaveButtonText() {
+    const isMediumScreen = window.innerWidth < 768;
+    const saveButtons = document.querySelectorAll('.save-profile-btn');
+    
+    saveButtons.forEach(button => {
+        const isSaved = button.getAttribute('data-saved') === 'true';
+        const icon = isSaved ? 'bi-bookmark-check-fill' : 'bi-bookmark-plus';
+        
+        if (isMediumScreen) {
+            button.innerHTML = `<i class="bi ${icon}"></i> ${isSaved ? 'Saved' : 'Save'}`;
+        } else {
+            button.innerHTML = `<i class="bi ${icon}"></i> ${isSaved ? 'Saved to My Profiles' : 'Save to My Profiles'}`;
+        }
+    });
+}
 
 function filterProfiles() {
     const searchText = document.getElementById('profileSearch').value.toLowerCase();
@@ -228,7 +264,14 @@ function handleProfileSave(buttonElement, profileId) {
                     buttonElement.classList.remove('btn-outline-success');
                     buttonElement.classList.add('btn-success');
                     buttonElement.setAttribute('data-saved', 'true');
-                    buttonElement.innerHTML = '<i class="bi bi-bookmark-check-fill"></i> Saved to My Profiles';
+                    
+                    // Update button text based on screen size
+                    const isMediumScreen = window.innerWidth < 768;
+                    if (isMediumScreen) {
+                        buttonElement.innerHTML = '<i class="bi bi-bookmark-check-fill"></i> Saved';
+                    } else {
+                        buttonElement.innerHTML = '<i class="bi bi-bookmark-check-fill"></i> Saved to My Profiles';
+                    }
                     
                     // Update toast for save action
                     document.getElementById('toastIcon').className = 'bi bi-bookmark-check-fill text-success me-2';
@@ -239,7 +282,14 @@ function handleProfileSave(buttonElement, profileId) {
                     buttonElement.classList.remove('btn-success');
                     buttonElement.classList.add('btn-outline-success');
                     buttonElement.setAttribute('data-saved', 'false');
-                    buttonElement.innerHTML = '<i class="bi bi-bookmark-plus"></i> Save to My Profiles';
+                    
+                    // Update button text based on screen size
+                    const isMediumScreen = window.innerWidth < 768;
+                    if (isMediumScreen) {
+                        buttonElement.innerHTML = '<i class="bi bi-bookmark-plus"></i> Save';
+                    } else {
+                        buttonElement.innerHTML = '<i class="bi bi-bookmark-plus"></i> Save to My Profiles';
+                    }
                     
                     // Update toast for remove action
                     document.getElementById('toastIcon').className = 'bi bi-bookmark-x text-danger me-2';

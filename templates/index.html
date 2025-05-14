@@ -14,48 +14,50 @@
         .main-container {
             max-width: 800px;
             margin: 0 auto;
-            padding: 2rem;
+            padding: 1.5rem;
             background-color: white;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
         .logo-container {
             text-align: center;
-            margin-bottom: 0.5rem; /* Reduced from 1.5rem to 0.5rem */
+            margin-bottom: 0.5rem;
         }
         .logo {
-            width: 180px; /* Increased from 120px to 180px */
+            width: 150px;
             height: auto;
-            margin-bottom: 0.5rem; /* Reduced from 1.5rem to 0.5rem */
+            margin-bottom: 0.5rem;
         }
         .page-title {
-            font-size: 2.5rem;
+            font-size: clamp(1.8rem, 5vw, 2.5rem);
             font-weight: 700;
             text-align: center;
             color: #0a192f;
             margin-bottom: 0.5rem;
         }
         .page-subtitle {
-            font-size: 1.5rem;
+            font-size: clamp(1.2rem, 4vw, 1.5rem);
             font-weight: 500;
             text-align: center;
             color: #0a192f;
             margin-bottom: 1.5rem;
         }
         .page-description {
-            font-size: 1.25rem;
+            font-size: clamp(1rem, 3vw, 1.25rem);
             text-align: center;
             margin-bottom: 2rem;
             line-height: 1.6;
         }
         .role-card {
             cursor: pointer;
-            width: 220px;
+            width: 100%;
+            max-width: 220px;
             border: 2px solid transparent;
             border-radius: 10px;
             transition: all 0.2s ease;
             overflow: hidden;
             background-color: #fff;
+            margin-bottom: 1rem;
         }
         .role-card:hover {
             transform: translateY(-5px);
@@ -81,14 +83,18 @@
             font-size: 0.85rem;
             color: #4a5568;
         }
-        .linkedin-input {
+        .input-group-text {
+            background-color: white !important;
+            border: none !important;
+        }
+        .form-control {
             border: none;
             border-bottom: 2px solid #dee2e6;
             border-radius: 0;
             padding: 10px 5px;
             transition: all 0.3s;
         }
-        .linkedin-input:focus {
+        .form-control:focus {
             border-bottom: 2px solid #e67e22;
             box-shadow: none;
         }
@@ -101,6 +107,7 @@
             font-weight: 500;
             transition: all 0.3s;
             margin: 0 5px;
+            width: auto;
         }
         .btn-primary:hover {
             background-color: #d35400;
@@ -122,18 +129,50 @@
             padding: 10px 24px;
             font-weight: 500;
             transition: all 0.3s;
+            width: 100%;
+            max-width: 300px;
         }
         .continue-btn:hover {
             background-color: #d35400;
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(230, 126, 34, 0.25);
         }
+        
+        /* Media Queries */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 10px;
+            }
+            .main-container {
+                padding: 1rem;
+                margin: 1rem;
+                width: calc(100% - 2rem);
+            }
+            .role-cards-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            .role-card {
+                margin-bottom: 1rem;
+                width: 100%;
+                max-width: 280px;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .page-title {
+                margin-top: 0.5rem;
+            }
+            .continue-btn {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container mt-5 mb-5">
+    <div class="container mt-3 mt-md-5 mb-5">
         <div class="main-container">
-            <!-- Logo - Updated to use image from static/project_logo.png with increased size -->
+            <!-- Logo -->
             <div class="logo-container">
                 <img src="static/project_logo.png" alt="Gurudakshina Logo" class="logo">
             </div>
@@ -157,30 +196,31 @@
                                 <path d="M0 1.146C0 .513.526 0 1.175 0h13.65C15.474 0 16 .513 16 1.146v13.708c0 .633-.526 1.146-1.175 1.146H1.175C.526 16 0 15.487 0 14.854V1.146zm4.943 12.248V6.169H2.542v7.225h2.401zm-1.2-8.212c.837 0 1.358-.554 1.358-1.248-.015-.709-.52-1.248-1.342-1.248-.822 0-1.359.54-1.359 1.248 0 .694.521 1.248 1.327 1.248h.016zm4.908 8.212V9.359c0-.216.016-.432.08-.586.173-.431.568-.878 1.232-.878.869 0 1.216.662 1.216 1.634v3.865h2.401V9.25c0-2.22-1.184-3.252-2.764-3.252-1.274 0-1.845.7-2.165 1.193v.025h-.016a5.54 5.54 0 0 1 .016-.025V6.169h-2.4c.03.678 0 7.225 0 7.225h2.4z"/>
                             </svg>
                         </span>
-                        <input type="text" id="name" name="name" class="form-control linkedin-input" placeholder="Your LinkedIn profile URL" required>
+                        <input type="text" id="name" name="name" class="form-control" placeholder="Your LinkedIn profile URL" required>
                     </div>
                 </div>
+
 
                 <!-- Role Selection -->
                 <div class="mb-4">
                     <label class="form-label text-center d-block">Choose your role</label>
-                    <div class="d-flex justify-content-center gap-4 flex-wrap">
+                    <div class="d-flex justify-content-center gap-3 flex-wrap role-cards-container">
                         
                         <!-- Teacher Card -->
                         <label class="role-card" id="teacherCard">
-                            <input class="form-check-input d-none" type="radio" name="role" value="mentor" id="roleTeacher" required>
+                            <input class="form-check-input d-none" type="radio" name="role" value="teacher" id="roleTeacher" required>
                             <div class="card-body text-center p-4">
                                 <div class="role-icon">
                                     <img src="https://cdn-icons-png.flaticon.com/512/201/201612.png" alt="Mentor" width="36">
                                 </div>
                                 <h6 class="role-title">Mentor</h6>
-                                <p class="role-description mb-0">Register as a teacher or mentor who has guided students</p>
+                                <p class="role-description mb-0">Your Impact Deserves Recognition. Celebrate your legacy as a mentor and receive the gratitude of those whose lives you've transformed</p>
                             </div>
                         </label>
                 
-                        <!-- Student Card -->
-                        <label class="role-card" id="studentCard">
-                            <input class="form-check-input d-none" type="radio" name="role" value="student" id="roleStudent">
+                        <!-- Student Card (Disabled) -->
+                        <label class="role-card opacity-50" id="studentCard" style="cursor: not-allowed; pointer-events: all;">
+                            <input class="form-check-input d-none" type="radio" name="role" value="student" id="roleStudent" disabled>
                             <div class="card-body text-center p-4">
                                 <div class="role-icon">
                                     <img src="https://cdn-icons-png.flaticon.com/512/3135/3135768.png" alt="Student" width="36">
@@ -209,7 +249,7 @@
             </form>
 
             <!-- About Section -->
-            <div class="mt-5">
+            <div class="mt-4 mt-md-5">
                 <h3 class="text-center mb-3">ABOUT THE PROGRAM</h3>
                 <p class="text-center">
                     Gurudakshina is a platform to find and thank the mentors who built you up. 
@@ -226,6 +266,7 @@
             const roleTeacher = document.getElementById('roleTeacher');
             const roleStudent = document.getElementById('roleStudent');
             const nameInput = document.getElementById('name');
+            const emailInput = document.getElementById('email');
             const warningMessage = document.getElementById('warningMessage');
             const loginForm = document.getElementById('loginForm');
             
@@ -234,22 +275,38 @@
                 teacherCard.classList.add('selected');
                 studentCard.classList.remove('selected');
                 roleTeacher.checked = true;
+                checkInputs();
             });
             
-            studentCard.addEventListener('click', function() {
-                studentCard.classList.add('selected');
-                teacherCard.classList.remove('selected');
-                roleStudent.checked = true;
+            studentCard.addEventListener('click', function(e) {
+                e.preventDefault();
+                // Show "coming soon" message
+                alert("This feature will be available soon.");
+                // Don't select this card
+                return false;
             });
+            
+            // Check input validity
+            function checkInputs() {
+                const nameValue = nameInput.value.trim();
+                const roleSelected = roleTeacher.checked || roleStudent.checked;
+                
+                if (nameValue !== "" && roleSelected) {
+                    warningMessage.style.display = "none"; // Hide warning
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+            
+            // Add event listeners to form elements
+            nameInput.addEventListener("input", checkInputs);
             
             // Validate form before submission
             loginForm.addEventListener('submit', function(event) {
-                const linkedinInput = nameInput.value.trim();
-                const roleSelected = roleTeacher.checked || roleStudent.checked;
-                
-                if (!linkedinInput || !roleSelected) {
-                    event.preventDefault();
-                    warningMessage.style.display = 'block';
+                if (!checkInputs()) {
+                    event.preventDefault(); // Stop form submission
+                    warningMessage.style.display = 'block'; // Show warning
                 }
             });
         });

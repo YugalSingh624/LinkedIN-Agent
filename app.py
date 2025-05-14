@@ -819,7 +819,7 @@ def start_search():
     education_index = int(request.args.get("education_index", 0))  # Default to first education/experience
     user_id = session.get("user_id")
     user_role = session.get("role", "").lower()
-    is_teacher = user_role in ["teacher", "professor", "principal"]
+    is_teacher = user_role in ["teacher", "professor", "principal", "mentor"]
 
     print("Value of Is teacher is:", is_teacher)
     
@@ -1154,7 +1154,7 @@ def invitation_coming_soon():
     
     # Check if user has appropriate role
     user_role = session.get("role", "").lower()
-    if user_role not in ["teacher", "professor", "principal"]:
+    if user_role not in ["teacher", "professor", "principal", "mentor"]:
         flash("You don't have permission to access this feature.", "warning")
         return redirect(url_for("saved_profiles"))
     

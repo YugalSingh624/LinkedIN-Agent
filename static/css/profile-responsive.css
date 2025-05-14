@@ -1,0 +1,289 @@
+/* Mobile Responsive Styles */
+
+/* Base responsive adjustments */
+@media (max-width: 991.98px) {
+    .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
+    .display-5 {
+        font-size: 1.75rem;
+    }
+    
+    .section-header {
+        font-size: 1.25rem;
+    }
+}
+
+/* Small devices (landscape phones, less than 768px) */
+@media (max-width: 767.98px) {
+    /* Header adjustments */
+    .profile-image-container {
+        width: 90px;
+        height: 90px;
+    }
+    
+    .profile-header-bg {
+        height: 100%;
+    }
+    
+    .display-5 {
+        font-size: 1.5rem;
+    }
+    
+    .profile-email {
+        font-size: 0.875rem;
+    }
+    
+    .linkedin-btn {
+        padding: 8px 16px;
+        font-size: 0.875rem;
+        margin-top: 1rem;
+        margin-bottom: 0.5rem;
+        display: inline-flex;
+    }
+    
+    /* Content adjustments */
+    .content-container {
+        padding: 1rem;
+    }
+    
+    /* Timeline adjustments */
+    .timeline-item {
+        padding-left: 1.25rem;
+    }
+    
+    .timeline-content {
+        padding: 1rem;
+    }
+    
+    .item-title {
+        font-size: 1rem;
+    }
+    
+    .item-subtitle {
+        font-size: 0.875rem;
+    }
+    
+    .timeline-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.75rem;
+    }
+    
+    /* Selector card adjustments */
+    .selector-card {
+        padding: 1.25rem;
+    }
+    
+    .selector-title {
+        font-size: 1rem;
+    }
+    
+    .custom-select {
+        padding: 0.5rem 0.75rem;
+    }
+    
+    /* State message adjustments */
+    .empty-state {
+        padding: 2rem 0;
+    }
+    
+    .empty-state i {
+        font-size: 2.5rem;
+    }
+    
+    .empty-state h4 {
+        font-size: 1rem;
+    }
+    
+    .loading-container {
+        padding: 2rem 0;
+    }
+    
+    .spinner {
+        width: 2.5rem;
+        height: 2.5rem;
+    }
+    
+    .loading-text {
+        font-size: 1rem;
+    }
+    
+    .loading-subtext {
+        font-size: 0.875rem;
+    }
+    
+    /* Buttons and interactive elements */
+    .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+    }
+    
+    .action-btn {
+        padding: 0.4rem 1rem;
+    }
+    
+    /* Connection cards */
+    .icon-circle {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .icon-circle i {
+        font-size: 1.25rem;
+    }
+    
+    /* Modal adjustments */
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+    
+    .modal-content {
+        border-radius: 10px;
+    }
+    
+    .modal-title {
+        font-size: 1.1rem;
+    }
+    
+    /* Toast adjustments */
+    .toast {
+        width: 85%;
+        max-width: 300px;
+    }
+}
+
+/* Extra small devices (portrait phones, less than 576px) */
+@media (max-width: 575.98px) {
+    /* Further refinements for very small screens */
+    .profile-image-container {
+        width: 75px;
+        height: 75px;
+    }
+    
+    .display-5 {
+        font-size: 1.25rem;
+    }
+    
+    .section-header {
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .timeline-container {
+        margin-top: 1rem;
+    }
+    
+    .timeline-item {
+        padding-bottom: 1.5rem;
+    }
+    
+    .timeline-content {
+        padding: 0.875rem;
+    }
+    
+    /* Adjust spacing */
+    .mb-5 {
+        margin-bottom: 2rem !important;
+    }
+    
+    .py-5 {
+        padding-top: 2rem !important;
+        padding-bottom: 2rem !important;
+    }
+    
+    /* Make buttons more touch-friendly */
+    .btn {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    /* Adjust connection cards for better touch */
+    .connection-option .card-body {
+        padding: 1rem;
+    }
+    
+    /* Improve form elements for mobile */
+    .custom-select, 
+    .custom-textarea {
+        font-size: 16px; /* Prevents iOS zoom on focus */
+    }
+    
+    /* Fix modal for small screens */
+    #remarkModal .modal-body,
+    #remarkModal .modal-footer {
+        padding: 1rem;
+    }
+    
+    /* Adjust alert styles */
+    .alert-minimal {
+        padding: 0.875rem;
+        font-size: 0.875rem;
+    }
+}
+
+/* Medium devices (tablets, less than 992px) */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .profile-image-container {
+        width: 100px;
+        height: 100px;
+    }
+    
+    .content-container {
+        padding: 1.75rem;
+    }
+    
+    /* More balanced sizing for tablets */
+    .display-5 {
+        font-size: 1.65rem;
+    }
+    
+    .section-header {
+        font-size: 1.3rem;
+    }
+}
+
+/* Special utility classes for responsive displays */
+@media (max-width: 767.98px) {
+    .display-md-5 {
+        font-size: 1.5rem;
+    }
+}
+
+@media (min-width: 768px) {
+    .display-md-5 {
+        font-size: 2rem;
+    }
+}
+
+/* Improve touch interactions on mobile */
+@media (max-width: 767.98px) {
+    /* Make all interactive elements touch-friendly */
+    .btn, 
+    .form-control,
+    .form-select,
+    a, 
+    button {
+        min-height: 44px;
+    }
+    
+    /* Improve dropdown usability */
+    select.form-select {
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
+    
+    /* Ensure proper touch spacing */
+    .connection-option .card-body {
+        padding-top: 1.25rem;
+        padding-bottom: 1.25rem;
+    }
+    
+    /* Fix scroll issues on modal */
+    .modal {
+        -webkit-overflow-scrolling: touch;
+    }
+}

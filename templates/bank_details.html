@@ -13,13 +13,16 @@
 
     .container {
         max-width: 800px;
+        padding-left: 15px;
+        padding-right: 15px;
+        width: 100%;
     }
 
     .profile-header {
         background: linear-gradient(135deg, #e67e22, #f39c12, #f5b041);
         color: #1a2639;
         border-radius: 1rem 1rem 0 0;
-        padding: 2rem 1.5rem;
+        padding: 1.5rem 1rem;
         text-align: center;
         position: relative;
         box-shadow: 0 4px 20px rgba(230, 126, 34, 0.2);
@@ -32,8 +35,8 @@
     }
 
     .logo-img {
-        width: 90px;
-        height: 90px;
+        width: 80px;
+        height: 80px;
         border-radius: 50%;
         object-fit: cover;
         border: 4px solid rgba(255, 255, 255, 0.8);
@@ -50,11 +53,13 @@
         font-weight: 600;
         margin-bottom: 0.3rem;
         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        font-size: 1.2rem;
     }
 
     .profile-header p {
         opacity: 0.9;
-        font-size: 0.95rem;
+        font-size: 0.9rem;
+        word-break: break-word;
     }
 
     .card-custom {
@@ -64,6 +69,7 @@
         overflow: hidden;
         transition: all 0.3s ease;
         border: 1px solid #e0e0e0;
+        margin: 0 auto;
     }
 
     .card-custom:hover {
@@ -72,7 +78,7 @@
     }
 
     .card-body {
-        padding: 2rem;
+        padding: 1.5rem;
         background: white;
         box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.03);
     }
@@ -84,6 +90,7 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
+        font-size: 1.1rem;
     }
 
     .section-title i {
@@ -134,9 +141,9 @@
         border: 1px solid #e9ecef;
         border-right: none;
         color: #6c757d;
-        padding-left: 1rem;
-        padding-right: 1rem;
-        width: 50px;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+        width: 40px;
         display: flex;
         justify-content: center;
     }
@@ -144,7 +151,7 @@
     .form-control {
         border-radius: 0 0.5rem 0.5rem 0;
         border: 1px solid #e9ecef;
-        padding: 0.6rem 1rem;
+        padding: 0.6rem 0.75rem;
         font-size: 1rem;
         transition: all 0.2s ease;
     }
@@ -167,6 +174,7 @@
         font-weight: 500;
         box-shadow: 0 4px 12px rgba(230, 126, 34, 0.2);
         transition: all 0.3s ease;
+        width: 100%;
     }
 
     .btn-primary:hover {
@@ -189,6 +197,8 @@
         align-items: center;
         justify-content: center;
         gap: 0.5rem;
+        text-align: center;
+        flex-wrap: wrap;
     }
 
     .card-footer i {
@@ -207,7 +217,7 @@
 
     .gurudakshina-title {
         text-align: center;
-        font-size: 2rem;
+        font-size: 1.75rem;
         font-weight: 700;
         margin-bottom: 0.2rem;
         color: #1a2639;
@@ -215,7 +225,7 @@
 
     .gurudakshina-subtitle {
         text-align: center;
-        font-size: 1.2rem;
+        font-size: 1.1rem;
         margin-bottom: 1rem;
         color: #1a2639;
     }
@@ -232,12 +242,102 @@
 
     /* Responsive tweaks */
     @media (max-width: 576px) {
+        .container {
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+        
+        .profile-header {
+            padding: 1.25rem 0.75rem;
+        }
+        
+        .logo-img {
+            width: 70px;
+            height: 70px;
+        }
+        
+        .gurudakshina-title {
+            font-size: 1.5rem;
+        }
+        
+        .gurudakshina-subtitle {
+            font-size: 1rem;
+        }
+        
         .profile-header h4 {
-            font-size: 1.2rem;
+            font-size: 1.1rem;
+        }
+        
+        .profile-header p {
+            font-size: 0.8rem;
         }
         
         .card-body {
-            padding: 1.5rem;
+            padding: 1.25rem 1rem;
+        }
+        
+        .section-title {
+            font-size: 1rem;
+            margin-bottom: 1.25rem;
+        }
+        
+        .info-text {
+            padding: 0.75rem;
+            font-size: 0.85rem;
+        }
+        
+        .form-check-inline {
+            margin-right: 0.5rem;
+        }
+        
+        .input-group-text {
+            width: 36px;
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+        }
+        
+        .form-control {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.95rem;
+        }
+        
+        .btn-primary {
+            padding: 0.6rem 1rem;
+        }
+        
+        .card-footer {
+            font-size: 0.75rem;
+            padding: 0.75rem;
+        }
+    }
+    
+    @media (max-width: 375px) {
+        .container {
+            padding-left: 5px;
+            padding-right: 5px;
+        }
+        
+        .my-5 {
+            margin-top: 1.5rem !important;
+            margin-bottom: 1.5rem !important;
+        }
+        
+        .logo-img {
+            width: 60px;
+            height: 60px;
+        }
+        
+        .gurudakshina-title {
+            font-size: 1.35rem;
+        }
+        
+        .gurudakshina-subtitle {
+            font-size: 0.9rem;
+        }
+        
+        .form-check-inline {
+            display: block;
+            margin-bottom: 0.5rem;
         }
     }
 </style>
@@ -263,14 +363,16 @@
             <form method="POST">
                 <div class="mb-4">
                     <label class="form-label">Select Your Preferred Receiving Method:</label>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="payment_method" id="bank_transfer" value="bank"
-                            checked>
-                        <label class="form-check-label" for="bank_transfer">Bank Transfer</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="payment_method" id="upi" value="upi">
-                        <label class="form-check-label" for="upi">UPI</label>
+                    <div class="payment-options">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="payment_method" id="bank_transfer" value="bank"
+                                checked>
+                            <label class="form-check-label" for="bank_transfer">Bank Transfer</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="payment_method" id="upi" value="upi">
+                            <label class="form-check-label" for="upi">UPI</label>
+                        </div>
                     </div>
                 </div>
 
@@ -315,12 +417,12 @@
                 </div>
 
                 <div class="d-grid">
-                    <button type="submit" class="btn btn-primary mt-3 py-3">Save Your Details</button>
+                    <button type="submit" class="btn btn-primary mt-3">Save Your Details</button>
                 </div>
             </form>
         </div>
 
-        <div class="card-footer text-center">
+        <div class="card-footer">
             <i class="fa-solid fa-lock"></i> Your information is securely encrypted and stored. Only accessible to verified students wanting to express gratitude.
         </div>
     </div>
@@ -385,12 +487,27 @@
     const formInputs = document.querySelectorAll('.form-control');
     formInputs.forEach(input => {
         input.addEventListener('focus', function() {
-            this.parentElement.style.transform = 'translateY(-2px)';
+            if (window.innerWidth > 576) {
+                this.parentElement.style.transform = 'translateY(-2px)';
+            }
         });
         
         input.addEventListener('blur', function() {
             this.parentElement.style.transform = 'translateY(0)';
         });
     });
+    
+    // Adjust padding for very small screens
+    function adjustLayout() {
+        const container = document.querySelector('.container');
+        if (window.innerWidth <= 320) {
+            container.style.padding = '0 3px';
+        } else if (window.innerWidth <= 375) {
+            container.style.padding = '0 5px';
+        }
+    }
+    
+    window.addEventListener('resize', adjustLayout);
+    adjustLayout();
 </script>
 {% endblock %}
