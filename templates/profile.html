@@ -12,7 +12,7 @@
                 <div class="row align-items-center">
                     <div class="col-auto">
                         <div class="profile-image-container">
-                            <img src="{{ session.get('profile_picture.jpg', url_for('static', filename='profile_picture.jpg')) }}"
+                            <img src="{{ session.get('profile_picture', url_for('static', filename='profile_picture.jpg')) }}"
                                 alt="Profile Picture" class="profile-image">
                         </div>
                     </div>
@@ -106,7 +106,8 @@
                     <div class="row mb-4">
                         <div class="col-12 col-md-8">
                             <div class="selector-card">
-                                {% if session.get('role', '').lower() in ['teacher', 'professor', 'principal', 'mentor'] %}
+                                {% if session.get('role', '').lower() in ['teacher', 'professor', 'principal', 'mentor']
+                                %}
                                 <h5 class="selector-title">Select Experience</h5>
                                 <p class="selector-desc">Choose which organization to search for connections:</p>
                                 <select class="form-select custom-select" id="education-selector">

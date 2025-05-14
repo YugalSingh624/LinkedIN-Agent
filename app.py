@@ -275,13 +275,13 @@ def callback():
         user_id = str(hash(f"{session['first_name']}{session['last_name']}{session['email']}"))
         session["user_id"] = user_id
 
-        # Profile picture (check if exists)
+        # Profile picture (direct from LinkedIn API)
         profile_picture = profile_data.get("picture")
         if profile_picture:
+            # Save direct URL to session instead of downloading
             session["profile_picture"] = profile_picture
-            download_image(profile_picture)
         else:
-            session["profile_picture"] = "static/default.jpg"
+            session["profile_picture"] = url_for("static", filename="default.jpg")
 
         # Initialize background tasks for this user
         background_tasks[user_id] = {}
@@ -1185,6 +1185,10 @@ def profile():
         last_updated = existing_user.get('last_updated', datetime.min)
         time_since_update = datetime.now() - last_updated
         
+        # Update session with the latest profile picture from database
+        if 'profile_picture' in existing_user:
+            session['profile_picture'] = existing_user['profile_picture']
+        
         # If it's been more than a day since last update, refresh data
         if time_since_update.days > 0:
             return redirect(url_for("update_profile"))
@@ -1195,8 +1199,6 @@ def profile():
         return redirect(url_for("home"))
         
     # Continue with normal profile rendering
-    # ... (your existing profile route code)
-    
     return render_template("profile.html", session=session)
 
 

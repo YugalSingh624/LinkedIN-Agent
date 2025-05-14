@@ -407,7 +407,7 @@
       {% if 'linkedin.com' in profile_img %}
         {% set profile_img = url_for('static', filename='img/default-profile.png') %}
       {% endif %}
-      <img src="{{ url_for('static', filename='profile_picture.jpg') }}" alt="Profile Picture" class="profile-picture">
+      <img src="{{ session.get('profile_picture', url_for('static', filename='profile_picture.jpg')) }}" alt="Profile Picture" class="profile-picture">
       <div class="profile-info">
         <h1 class="profile-name">{{ profile_data.basic_info['First Name'] }} {{ profile_data.basic_info['Last Name'] }}</h1>
         <!-- Show current position/title instead of role -->

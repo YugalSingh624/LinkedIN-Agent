@@ -138,6 +138,14 @@
             box-shadow: 0 4px 8px rgba(230, 126, 34, 0.25);
         }
         
+        /* Error message styles */
+        .error-message {
+            color: #dc3545;
+            font-size: 0.9rem;
+            margin-top: 5px;
+            display: none;
+        }
+        
         /* Media Queries */
         @media (max-width: 768px) {
             .container {
@@ -198,6 +206,8 @@
                         </span>
                         <input type="text" id="name" name="name" class="form-control" placeholder="Your LinkedIn profile URL" required>
                     </div>
+                    <!-- Error message for LinkedIn URL -->
+                    <div id="urlErrorMsg" class="error-message">Please enter your LinkedIn profile URL</div>
                 </div>
 
 
@@ -230,6 +240,8 @@
                             </div>
                         </label>
                     </div>
+                    <!-- Error message for role selection -->
+                    <div id="roleErrorMsg" class="error-message text-center mt-2">Please select a role</div>
                 </div>
                 
                 <!-- Submit Button -->
@@ -266,7 +278,8 @@
             const roleTeacher = document.getElementById('roleTeacher');
             const roleStudent = document.getElementById('roleStudent');
             const nameInput = document.getElementById('name');
-            const emailInput = document.getElementById('email');
+            const urlErrorMsg = document.getElementById('urlErrorMsg');
+            const roleErrorMsg = document.getElementById('roleErrorMsg');
             const warningMessage = document.getElementById('warningMessage');
             const loginForm = document.getElementById('loginForm');
             
@@ -275,6 +288,7 @@
                 teacherCard.classList.add('selected');
                 studentCard.classList.remove('selected');
                 roleTeacher.checked = true;
+                roleErrorMsg.style.display = 'none';
                 checkInputs();
             });
             
@@ -291,22 +305,54 @@
                 const nameValue = nameInput.value.trim();
                 const roleSelected = roleTeacher.checked || roleStudent.checked;
                 
-                if (nameValue !== "" && roleSelected) {
-                    warningMessage.style.display = "none"; // Hide warning
-                    return true;
+                // Check LinkedIn URL
+                if (nameValue === "") {
+                    urlErrorMsg.style.display = "block";
                 } else {
-                    return false;
+                    urlErrorMsg.style.display = "none";
                 }
+                
+                // Check role selection
+                if (!roleSelected) {
+                    roleErrorMsg.style.display = "block";
+                } else {
+                    roleErrorMsg.style.display = "none";
+                }
+                
+                return (nameValue !== "" && roleSelected);
             }
             
             // Add event listeners to form elements
-            nameInput.addEventListener("input", checkInputs);
+            nameInput.addEventListener("input", function() {
+                if (nameInput.value.trim() !== "") {
+                    urlErrorMsg.style.display = "none";
+                } else {
+                    urlErrorMsg.style.display = "block";
+                }
+                checkInputs();
+            });
             
             // Validate form before submission
             loginForm.addEventListener('submit', function(event) {
-                if (!checkInputs()) {
+                const isValid = checkInputs();
+                
+                if (!isValid) {
                     event.preventDefault(); // Stop form submission
                     warningMessage.style.display = 'block'; // Show warning
+                    
+                    // Make error messages more visible
+                    if (nameInput.value.trim() === "") {
+                        urlErrorMsg.style.display = "block";
+                        urlErrorMsg.style.fontWeight = "bold";
+                    }
+                    
+                    if (!roleTeacher.checked && !roleStudent.checked) {
+                        roleErrorMsg.style.display = "block";
+                        roleErrorMsg.style.fontWeight = "bold";
+                        roleErrorMsg.style.backgroundColor = "#ffeeee";
+                        roleErrorMsg.style.padding = "5px";
+                        roleErrorMsg.style.borderRadius = "4px";
+                    }
                 }
             });
         });
