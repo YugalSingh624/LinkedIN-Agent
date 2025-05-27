@@ -131,9 +131,9 @@ function initDynamicConnectionCards() {
         {
             type: 'saved',
             icon: 'bi-bookmark-star',
-            title: 'Saved Profiles',
-            description: 'View profiles you\'ve saved for later',
-            buttonText: 'View Saved',
+            title: 'My Network',
+            description: 'View and manage your professional connections',
+            buttonText: 'My Network',
             link: "/saved_profiles"
         }
     ];

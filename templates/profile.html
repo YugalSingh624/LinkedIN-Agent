@@ -23,10 +23,15 @@
                             <i class="bi bi-envelope me-2"></i>{{ session.get("email", "Not Available") }}
                         </p>
                     </div>
-                    <div class="col-12 col-md-3 text-md-end mt-3 mt-md-0">
-                        <a href="{{ url_for('user_profile_view') }}" class="linkedin-btn">
+                    <div class="col-12 col-md-3 text-md-end mt-3 mt-md-0 d-flex justify-content-md-end align-items-center gap-2 flex-wrap">
+                        <a href="{{ url_for('user_profile_view') }}" class="linkedin-btn mb-2 mb-md-0">
                             <i class="bi bi-person me-2"></i>My Profile
                         </a>
+                        {% if session.get('role', '').lower() in ['teacher', 'professor', 'principal', 'mentor'] %}
+                        <button type="button" class="btn btn-warning rounded-pill d-inline-flex align-items-center" style="font-weight:500; padding: 0.5rem 1.5rem; min-width: 180px;" data-bs-toggle="modal" data-bs-target="#bankDetailsModal">
+                            <i class="fa-solid fa-hand-holding-heart me-2"></i>Gratitude Fund Info
+                        </button>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -96,145 +101,304 @@
                     {% endif %}
                 </div>
 
-                <!-- Connection Options Section -->
+                <!-- My Network Button -->
                 <div class="mb-4 mb-md-5">
                     <h2 class="section-header">
                         <i class="bi bi-people me-2"></i>Connect With Your Network
                     </h2>
-
-                    <!-- Education/Experience Selection Dropdown -->
-                    <div class="row mb-4">
-                        <div class="col-12 col-md-8">
-                            <div class="selector-card">
-                                {% if session.get('role', '').lower() in ['teacher', 'professor', 'principal', 'mentor']
-                                %}
-                                <h5 class="selector-title">Select Experience</h5>
-                                <p class="selector-desc">Choose which organization to search for connections:</p>
-                                <select class="form-select custom-select" id="education-selector">
-                                    {% if session.get("experience_details") %}
-                                    {% for exp in session["experience_details"] %}
-                                    <option value="{{ loop.index0 }}">
-                                        {{ exp.get("Organization", " ") }} - {{ exp.get("Title", " ") }}
-                                    </option>
-                                    {% endfor %}
-                                    {% else %}
-                                    <option value="0">No experience details available</option>
-                                    {% endif %}
-                                </select>
-                                {% else %}
-                                <h5 class="selector-title">Select Education</h5>
-                                <p class="selector-desc">Choose which educational institution to search for connections:
-                                </p>
-                                <select class="form-select custom-select" id="education-selector">
-                                    {% if session.get("education_details") %}
-                                    {% for edu in session["education_details"] %}
-                                    <option value="{{ loop.index0 }}">
-                                        {{ edu.get("InstitutionName", " ") }} - {{ edu.get("Degree", " ") }}
-                                    </option>
-                                    {% endfor %}
-                                    {% else %}
-                                    <option value="0">No education details available</option>
-                                    {% endif %}
-                                </select>
-                                {% endif %}
+                    <div class="row">
+                        <div class="col-12 col-md-6 mx-auto">
+                            <div class="card h-100 border-0 shadow-sm connection-option">
+                                <div class="card-body text-center p-3 p-md-4 d-flex flex-column">
+                                    <div class="icon-circle mb-3 mx-auto">
+                                        <i class="bi bi-bookmark-star"></i>
+                                    </div>
+                                    <h3 class="card-title fs-5 fs-md-4 mb-2">My Network</h3>
+                                    <p class="card-text text-muted small">View and manage your professional connections</p>
+                                    <div class="mt-auto pt-3">
+                                        <a href="{{ url_for('saved_profiles') }}" class="btn btn-outline-primary w-100">
+                                            <i class="bi bi-people me-2"></i>View My Network
+                                        </a>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Dynamic Connection Cards -->
-                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3 g-md-4" id="connection-cards">
-                        <!-- Cards will be dynamically populated via JavaScript -->
-                    </div>
-                </div>
-
-                <!-- Alumni/Connection Results Section -->
-                <div>
-                    <h2 class="section-header" id="results-heading">
-                        <i class="bi bi-list me-2"></i>Search Results
-                    </h2>
-
-                    <!-- Loading spinner that will be shown while data is being fetched -->
-                    <div id="alumni-loading" class="loading-container" style="display: none;">
-                        <div class="spinner">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <h4 class="loading-text">Loading profiles...</h4>
-                        <p class="loading-subtext">This may take a few moments</p>
-                    </div>
-
-                    <!-- No selection message -->
-                    <div id="no-selection" class="empty-state">
-                        <i class="bi bi-arrow-up-circle"></i>
-                        <h4>Select an option above to start searching</h4>
-                    </div>
-
-                    <!-- Alumni content that will be populated when data is available -->
-                    <div id="alumni-content" style="display: none;">
-                        <div class="d-flex justify-content-between mb-3">
-                            <h5 id="search-info" class="search-results-info"></h5>
-                        </div>
-                        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3 g-md-4" id="alumni-container">
-                            <!-- Will be populated via JavaScript -->
-                        </div>
-                    </div>
-
-                    <!-- Error message if search fails -->
-                    <div id="alumni-error" class="error-message" style="display: none;">
-                        <i class="bi bi-exclamation-triangle me-2"></i>
-                        <span id="error-message">Error loading profiles.</span>
-                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Modal for adding remarks -->
-<div class="modal fade" id="remarkModal" tabindex="-1" aria-labelledby="remarkModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0">
-            <div class="modal-header border-0">
-                <h5 class="modal-title" id="remarkModalLabel">Add a Remark</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="remarkForm">
-                    <div class="mb-3">
-                        <label for="profileRemark" class="form-label">Add a note about this profile:</label>
-                        <textarea class="form-control custom-textarea" id="profileRemark" rows="3"
-                            placeholder="e.g., Met at conference, Potential research collaborator, etc."></textarea>
-                    </div>
-                    <input type="hidden" id="remarkProfileName">
-                    <input type="hidden" id="remarkProfileLink">
-                    <input type="hidden" id="remarkProfileType">
-                    <input type="hidden" id="remarkProfileInstitute">
-                </form>
-            </div>
-            <div class="modal-footer border-0">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary save-btn" id="saveRemarkBtn">Save Profile</button>
-            </div>
+    <!-- Admin Dashboard button if user is admin -->
+    {% if session.email in ["admin@example.com"] %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Admin Panel</h5>
+            <p>Manage users and view application statistics.</p>
+            <a href="{{ url_for('admin_users') }}" class="btn btn-primary">
+                <i class="fas fa-users-cog"></i> Admin Dashboard
+            </a>
         </div>
     </div>
-</div>
-
-<!-- Toast notification for save status -->
-<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-    <div id="saveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="toast-header border-0">
-            <i class="bi bi-check-circle text-success me-2"></i>
-            <strong class="me-auto">Profile Saved</strong>
-            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-        <div class="toast-body">
-            Profile has been saved successfully!
-        </div>
-    </div>
+    {% endif %}
 </div>
 
 <!-- Link to base and responsive styles -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/profile-base.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/profile-responsive.css') }}">
+
+<!-- Bank Details Modal (Styled like bank_details.html) -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+<style>
+    .modal-content.bank-modal {
+        border-radius: 1rem;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+        border: 1px solid #e0e0e0;
+        overflow: hidden;
+    }
+    .bank-modal .modal-header {
+        background: linear-gradient(135deg, #e67e22, #f39c12, #f5b041);
+        color: #1a2639;
+        border-radius: 1rem 1rem 0 0;
+        text-align: center;
+        border-bottom: none;
+    }
+    .bank-modal .logo-img {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 4px solid rgba(255, 255, 255, 0.8);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        margin-bottom: 0.5rem;
+    }
+    .bank-modal .gurudakshina-title {
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: #1a2639;
+        margin-bottom: 0.2rem;
+    }
+    .bank-modal .gurudakshina-subtitle {
+        font-size: 0.9rem;
+        color: #1a2639;
+        margin-bottom: 0.5rem;
+    }
+    .bank-modal .modal-body {
+        background: #fff;
+        padding: 2rem 1.5rem 1.5rem 1.5rem;
+    }
+    .bank-modal .section-title {
+        font-weight: 600;
+        color: #1a2639;
+        margin-bottom: 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 1.1rem;
+    }
+    .bank-modal .info-text {
+        font-size: 0.9rem;
+        color: #6c757d;
+        background-color: #fff9e6;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        border-left: 4px solid #e67e22;
+        margin-bottom: 1.2rem;
+    }
+    .bank-modal .form-label {
+        font-weight: 500;
+        font-size: 0.95rem;
+        color: #4a5568;
+        margin-bottom: 0.5rem;
+    }
+    .bank-modal .form-check-input:checked {
+        background-color: #e67e22;
+        border-color: #e67e22;
+    }
+    .bank-modal .input-group {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1.2rem;
+    }
+    .bank-modal .input-group-text {
+        background-color: #f9f5e7;
+        border: 1px solid #e9ecef;
+        border-right: none;
+        color: #e67e22;
+        width: 40px;
+        display: flex;
+        justify-content: center;
+    }
+    .bank-modal .form-control {
+        border-radius: 0 0.5rem 0.5rem 0;
+        border: 1px solid #e9ecef;
+        padding: 0.6rem 0.75rem;
+        font-size: 1rem;
+    }
+    .bank-modal .form-control:focus {
+        box-shadow: none;
+        border-color: #e67e22;
+    }
+    .bank-modal .btn-primary {
+        background: linear-gradient(to right, #e67e22, #f39c12);
+        border: none;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        box-shadow: 0 4px 12px rgba(230, 126, 34, 0.2);
+        width: 100%;
+    }
+    .bank-modal .btn-primary:hover {
+        background: linear-gradient(to right, #d35400, #e67e22);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(230, 126, 34, 0.3);
+    }
+    .bank-modal .note-text {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin-top: 0.5rem;
+    }
+    .bank-modal .invalid-feedback {
+        display: none;
+        color: #dc3545;
+        font-size: 0.85rem;
+    }
+    .bank-modal .form-control.is-invalid ~ .invalid-feedback {
+        display: block;
+    }
+</style>
+<div class="modal fade" id="bankDetailsModal" tabindex="-1" aria-labelledby="bankDetailsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bank-modal">
+      <div class="modal-header flex-column align-items-center">
+        <img src="{{ session.get('profile_picture', url_for('static', filename='profile_picture.jpg')) }}" alt="Profile Photo" class="logo-img">
+        <div class="gurudakshina-title">GURUDAKSHINA</div>
+        <div class="gurudakshina-subtitle">THE GRATITUDE FUND</div>
+        <h5 class="modal-title w-100 text-center mt-2" id="bankDetailsModalLabel">Payment Details</h5>
+        <button type="button" class="btn-close position-absolute end-0 top-0 m-3" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <h5 class="section-title"><i class="fa-solid fa-hand-holding-heart"></i> Receive Contributions</h5>
+        <div class="info-text">
+          <strong>For Educators:</strong> Please provide your preferred payment details to receive Gurudakshina contributions from your grateful students. Your information will be securely stored.
+        </div>
+        <form action="{{ url_for('bank_details') }}" method="POST" id="bankDetailsForm">
+          <div class="mb-4">
+            <label class="form-label">Select Your Preferred Receiving Method:</label>
+            <div class="payment-options">
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="payment_type" id="bank_transfer" value="bank" {% if bank_details.get('payment_type', 'bank') == 'bank' %}checked{% endif %}>
+                <label class="form-check-label" for="bank_transfer">Bank Transfer</label>
+              </div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="payment_type" id="upi" value="upi" {% if bank_details.get('payment_type') == 'upi' %}checked{% endif %}>
+                <label class="form-check-label" for="upi">UPI</label>
+              </div>
+            </div>
+          </div>
+          <div id="bank_details">
+            <p class="note-text mb-3">Fill in the fields you have information for. You don't need to complete all fields.</p>
+            <div class="input-group mb-3">
+              <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
+              <input type="text" class="form-control" id="account_holder_name" name="account_holder" placeholder="Account Holder Name" value="{{ bank_details.get('account_holder', '') }}">
+            </div>
+            <div class="input-group mb-3">
+              <span class="input-group-text"><i class="fa-solid fa-hashtag"></i></span>
+              <input type="text" class="form-control" id="account_number" name="account_number" placeholder="Account Number" pattern="\d{9,18}" value="{{ bank_details.get('account_number', '') }}">
+              <div class="invalid-feedback">Account number should be 9–18 digits.</div>
+            </div>
+            <div class="input-group mb-3">
+              <span class="input-group-text"><i class="fa-solid fa-code"></i></span>
+              <input type="text" class="form-control" id="ifsc_code" name="ifsc_code" placeholder="IFSC Code" pattern="^[A-Z]{4}0[A-Z0-9]{6}$" value="{{ bank_details.get('ifsc_code', '') }}">
+              <div class="invalid-feedback">IFSC code format: SBIN0001234</div>
+            </div>
+            <div class="input-group mb-4">
+              <span class="input-group-text"><i class="fa-solid fa-building-columns"></i></span>
+              <input type="text" class="form-control" id="bank_name" name="bank_name" placeholder="Bank Name" value="{{ bank_details.get('bank_name', '') }}">
+            </div>
+          </div>
+          <div id="upi_details" style="display: none;">
+            <p class="note-text mb-3">Enter your UPI ID to receive Gurudakshina contributions.</p>
+            <div class="input-group mb-4">
+              <span class="input-group-text"><i class="fa-solid fa-mobile-screen"></i></span>
+              <input type="text" class="form-control" id="upi_id" name="upi_id" placeholder="yourname@upi" pattern="^[\w.-]+@[\w]{3,}$" value="{{ bank_details.get('upi_id', '') }}">
+              <div class="invalid-feedback">Enter a valid UPI ID (e.g., yourname@upi).</div>
+            </div>
+          </div>
+          <div class="d-grid">
+            <button type="submit" class="btn btn-primary mt-3">Save Your Details</button>
+          </div>
+        </form>
+      </div>
+      <div class="card-footer text-center p-2" style="background:#f9f5e7;font-size:0.85rem;color:#6c757d;">
+        <i class="fa-solid fa-lock"></i> Your information is securely encrypted and stored. Only accessible to verified students wanting to express gratitude.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0">
+        <h5 class="modal-title" id="successModalLabel">Success</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
+        <p class="mt-3 mb-0">Payment details saved successfully!</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add JavaScript for bank details modal and success notification -->
+<script>
+// Payment modal toggle and validation logic
+(function () {
+    const bankRadio = document.getElementById('bank_transfer');
+    const upiRadio = document.getElementById('upi');
+    const bankDetails = document.getElementById('bank_details');
+    const upiDetails = document.getElementById('upi_details');
+    function togglePaymentFields() {
+        if (bankRadio.checked) {
+            bankDetails.style.display = 'block';
+            upiDetails.style.display = 'none';
+        } else {
+            bankDetails.style.display = 'none';
+            upiDetails.style.display = 'block';
+        }
+    }
+    bankRadio.addEventListener('change', togglePaymentFields);
+    upiRadio.addEventListener('change', togglePaymentFields);
+    // Show correct section on modal open
+    document.getElementById('bankDetailsModal').addEventListener('shown.bs.modal', function () {
+        togglePaymentFields();
+    });
+    togglePaymentFields();
+    // Form validation
+    const form = document.getElementById('bankDetailsForm');
+    form.addEventListener('submit', function (event) {
+        const inputs = form.querySelectorAll('input[pattern]');
+        let isValid = true;
+        inputs.forEach(input => {
+            if (input.value.trim() !== '' && !input.checkValidity()) {
+                input.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                input.classList.remove('is-invalid');
+            }
+        });
+        if (!isValid) {
+            event.preventDefault();
+            event.stopPropagation();
+            return false;
+        }
+    });
+})();
+</script>
 
 <!-- Profile JavaScript -->
 <script src="{{ url_for('static', filename='js/profile.js') }}"></script>

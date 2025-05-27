@@ -1,32 +1,108 @@
 {% extends "base.html" %}
-{% block title %}Alumni Connect - Home{% endblock %}
+{% block title %}Gurudakshina - The Gratitude Fund{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="card shadow-sm border-0 rounded-4 mb-5">
-        <div class="card-body p-5">
-            <div class="text-center mb-5">
-                <div class="mb-4">
-                    <i class="bi bi-people-fill text-primary" style="font-size: 3.5rem;"></i>
-                </div>
-                <h1 class="display-5 fw-bold mb-3">You've Been Invited</h1>
-                
-                {% if inviter_name %}
-                <p class="lead text-secondary">{{ inviter_name }} has invited you and shared their saved profiles with you.</p>
+<style>
+.gratitude-wall-scroll {
+    max-height: 350px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+.gratitude-wall-scroll::-webkit-scrollbar {
+    width: 8px;
+    background: #f1f1f1;
+    border-radius: 8px;
+}
+.gratitude-wall-scroll::-webkit-scrollbar-thumb {
+    background: #e0e0e0;
+    border-radius: 8px;
+}
+</style>
+<div class="container py-5" style="max-width: 900px;">
+    <div class="text-center mb-4">
+        <!-- Logo -->
+        <img src="{{ url_for('static', filename='project_logo.png') }}" alt="Skill Bharat Association Logo" style="height: 150px; margin-bottom: 10px;">
+        <h1 class="display-4 fw-bold mt-2">GURUDAKSHINA</h1>
+        <div class="lead text-uppercase mb-2" style="letter-spacing: 2px;">The Gratitude Fund</div>
+        <p class="fs-4 fw-semibold">Honor the mentors who shaped your life. From KG to PG, thank them now.</p>
+    </div>
+    <div class="d-flex flex-wrap justify-content-center gap-3 mb-4">
+        <a href="#map-mentors" class="btn btn-warning btn-lg px-4 rounded-pill fw-bold" style="cursor: default;">MAP MY MENTORS</a>
+        <a href="#register-mentor" class="btn btn-outline-warning btn-lg px-4 rounded-pill fw-bold" style="cursor: default;">REGISTER AS A MENTOR</a>
+        <a href="#contribute" class="btn btn-warning btn-lg px-4 rounded-pill fw-bold" style="cursor: default;">MAKE A CONTRIBUTION</a>
+    </div>
+    <div class="row g-4 mt-4">
+        <div class="col-md-7">
+            <h4 class="fw-bold">ABOUT THE PROGRAM</h4>
+            <p>Gurudakshina is a platform to find and thank the mentors who built you up. Contributions are distributed fairly and transparently to educators in need.</p>
+            <h5 class="fw-bold mt-4">SEARCH AND MAP SYSTEM</h5>
+            <p>Enter LinkedIn profiles of mentors from different stages of your education journey. Donate to them equally or choose your preferences.</p>
+            <h5 class="fw-bold mt-4">GRATITUDE WALL</h5>
+            <p>Seed LinkedIn profiles of mentors from different stages of your education journey. Donate them equally or choose your preferences.</p>
+            <a href="#nominate" class="btn btn-warning btn-lg mt-3 rounded-pill fw-bold" style="cursor: default;">NOMINATE YOUR TEACHER</a>
+        </div>
+        <div class="col-md-5">
+            <h5 class="fw-bold mb-3">GRATITUDE WALL</h5>
+            <!-- Search bar for teachers -->
+            <div class="mb-2">
+                <input type="text" id="teacherSearchInput" class="form-control form-control-sm" placeholder="Search by name, institution, or email...">
+            </div>
+            <div class="gratitude-wall-scroll" id="gratitudeWallList">
+                {% if teachers and teachers|length > 0 %}
+                    {% for teacher in teachers %}
+                    <div class="bg-light rounded-4 p-3 mb-3 teacher-card" 
+                         data-search="{{ teacher.first_name|lower }} {{ teacher.last_name|lower }} {{ teacher.email|lower }}{% if teacher.experience_details and teacher.experience_details[0].Organization %} {{ teacher.experience_details[0].Organization|lower }}{% elif teacher.education_details and teacher.education_details[0].InstitutionName %} {{ teacher.education_details[0].InstitutionName|lower }}{% endif %}">
+                        <div class="d-flex align-items-center mb-1">
+                            <div class="rounded-circle bg-secondary me-2" style="width: 40px; height: 40px; overflow: hidden;">
+                                <img src="{{ teacher.profile_picture|default('/static/default.jpg') }}" alt="{{ teacher.first_name }}" style="width: 40px; height: 40px; object-fit: cover;">
+                            </div>
+                            <div>
+                                <span class="fw-bold">{{ teacher.first_name }} {{ teacher.last_name }}</span><br>
+                                <span class="small text-muted">
+                                    {% if teacher.experience_details and teacher.experience_details[0].Organization %}
+                                        {{ teacher.experience_details[0].Organization }}
+                                    {% elif teacher.education_details and teacher.education_details[0].InstitutionName %}
+                                        {{ teacher.education_details[0].InstitutionName }}
+                                    {% else %}
+                                        Educator
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="ps-5 small">
+                            Thank you for your guidance and inspiration!
+                        </div>
+                    </div>
+                    {% endfor %}
                 {% else %}
-                <p class="lead text-secondary">You've been invited to join to view shared profiles.</p>
+                    <div class="alert alert-info text-center">No teachers found yet. Be the first to thank a mentor!</div>
                 {% endif %}
             </div>
-            
-            <div class="d-flex justify-content-center">
-                <div class="text-center">
-                    <a href="{{ url_for('continue_to_login') }}" class="btn btn-primary btn-lg px-4 py-2 rounded-pill">
-                        <i class="bi bi-linkedin me-2"></i>Continue with LinkedIn
-                    </a>
-                    <p class="text-muted mt-3 small">Sign in securely to view shared profiles and join our community</p>
-                </div>
-            </div>
+            <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const searchInput = document.getElementById('teacherSearchInput');
+                const teacherCards = document.querySelectorAll('.teacher-card');
+                searchInput.addEventListener('input', function() {
+                    const value = this.value.toLowerCase();
+                    teacherCards.forEach(card => {
+                        const search = card.getAttribute('data-search');
+                        card.style.display = !value || search.includes(value) ? '' : 'none';
+                    });
+                });
+            });
+            </script>
         </div>
+    </div>
+    {% if inviter_name %}
+    <div class="alert alert-info mt-5 text-center">
+        <strong>{{ inviter_name }}</strong> has invited you and shared their saved profiles with you.
+    </div>
+    {% endif %}
+    <div class="text-center mt-4">
+        <a href="{{ url_for('continue_to_login') }}" class="btn btn-primary btn-lg px-5 py-2 rounded-pill">
+            <i class="bi bi-linkedin me-2"></i>Continue with LinkedIn
+        </a>
+        <p class="text-muted mt-2 small">Sign in securely to view shared profiles and join our community</p>
     </div>
 </div>
 {% endblock %}

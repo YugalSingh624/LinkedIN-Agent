@@ -72,6 +72,37 @@ def home():
     # Get invite token if present
     invite_token = request.args.get("invite")
     
+    # Fetch all users from the database to display on the landing page
+    try:
+        users = list(db.users.find({}, {
+            'first_name': 1,
+            'last_name': 1,
+            'email': 1,
+            'role': 1,
+            'last_login': 1,
+            'profile_picture': 1,
+            'linkedin_url': 1,
+            'education_details': 1,
+            'experience_details': 1
+        }))
+        
+        # Format data for display
+        for user in users:
+            # Convert ObjectId to string
+            user['_id'] = str(user['_id']) if '_id' in user else ''
+            
+            # Format last login date
+            if 'last_login' in user:
+                user['last_login_formatted'] = user['last_login'].strftime("%Y-%m-%d %H:%M")
+            else:
+                user['last_login_formatted'] = "Never"
+        # Prepare teachers list for the gratitude wall
+        teachers = [u for u in users if u.get('role', '').lower() in ['teacher', 'professor', 'principal', 'mentor']]
+    except Exception as e:
+        users = []
+        teachers = []
+        print(f"Error fetching users: {e}")
+    
     # If there's an invite token and user is already logged in,
     # redirect them directly to the shared profiles page
     if invite_token and 'user_id' in session:
@@ -104,13 +135,15 @@ def home():
                 "invite_welcome.html",  # This will be your second HTML template
                 linkedin_auth_url=linkedin_auth_url,
                 invite=True,
-                inviter_name=inviter_name
+                inviter_name=inviter_name,
+                teachers=teachers
             )
     
-    # If no invite token or invalid token, show the regular login page (first HTML)
+    # If no invite token or invalid token, show the regular login page with users list
     return render_template(
         "index.html",  # This will be your first HTML template 
-        linkedin_auth_url=linkedin_auth_url
+        linkedin_auth_url=linkedin_auth_url,
+        users=users
     )
 
 # New route to handle the redirection from invitation welcome page to login form
@@ -125,11 +158,37 @@ def continue_to_login():
         f"&redirect_uri={REDIRECT_URI}&scope=openid%20profile%20email"
     )
     
+    # Fetch all users from the database to display in the community section
+    try:
+        users = list(db.users.find({}, {
+            'first_name': 1,
+            'last_name': 1,
+            'email': 1,
+            'role': 1,
+            'last_login': 1,
+            'profile_picture': 1,
+            'linkedin_url': 1,
+            'education_details': 1,
+            'experience_details': 1
+        }))
+        for user in users:
+            user['_id'] = str(user['_id']) if '_id' in user else ''
+            if 'last_login' in user:
+                user['last_login_formatted'] = user['last_login'].strftime("%Y-%m-%d %H:%M")
+            else:
+                user['last_login_formatted'] = "Never"
+        teachers = [u for u in users if u.get('role', '').lower() in ['teacher', 'professor', 'principal', 'mentor']]
+    except Exception as e:
+        users = []
+        teachers = []
+        print(f"Error fetching users: {e}")
+
     # Render the login form (first HTML)
     return render_template(
         "index.html",
         linkedin_auth_url=linkedin_auth_url,
-        invite_token=invite_token  # Pass the token in case you need it in the form
+        invite_token=invite_token,
+        users=users
     )
 
 @app.route("/handle_login", methods=["POST"])
@@ -271,10 +330,6 @@ def callback():
         session["education_details"] = education_details
         session["experience_details"] = experience_details
 
-        # Generate a unique user ID for tracking the background task
-        user_id = str(hash(f"{session['first_name']}{session['last_name']}{session['email']}"))
-        session["user_id"] = user_id
-
         # Profile picture (direct from LinkedIn API)
         profile_picture = profile_data.get("picture")
         if profile_picture:
@@ -282,9 +337,6 @@ def callback():
             session["profile_picture"] = profile_picture
         else:
             session["profile_picture"] = url_for("static", filename="default.jpg")
-
-        # Initialize background tasks for this user
-        background_tasks[user_id] = {}
 
         # Get user role from session
         user_role = session.get('role', '')
@@ -294,7 +346,6 @@ def callback():
 
         # Create a comprehensive user data document
         user_data = {
-            'user_id': user_id,
             'unique_identifier': unique_identifier,
             'email': session['email'],
             'first_name': session['first_name'],
@@ -306,7 +357,9 @@ def callback():
             'experience_details': experience_details,
             'linkedin_profile_data': linkedin_profile_data,
             'last_login': datetime.now(),
-            'last_updated': datetime.now()
+            'last_updated': datetime.now(),
+            # Add public_id if not present
+            'public_id': str(uuid.uuid4())
         }
 
         # Now check if there was an invite token and process it
@@ -330,7 +383,7 @@ def callback():
                         {
                             '$set': {
                                 'used': True,
-                                'used_by': user_id,
+                                'used_by': None,  # Will update after user insert
                                 'used_by_name': f"{session['first_name']} {session['last_name']}",
                                 'used_at': datetime.now(),
                                 'used_email': session['email']
@@ -361,30 +414,29 @@ def callback():
                 {'unique_identifier': unique_identifier},
                 {'$set': user_data}
             )
+            session["user_id"] = str(existing_user["_id"])
+            # If invite_token was used, update the invite with the new user's _id
+            if invite_token:
+                db.invites.update_one(
+                    {'token': invite_token},
+                    {'$set': {'used_by': str(existing_user['_id'])}}
+                )
+            # If updating an existing user, preserve their public_id
+            if 'public_id' in existing_user:
+                user_data['public_id'] = existing_user['public_id']
         else:
             # Insert new user
-            db.users.insert_one(user_data)
-
-        # Check if this is an educator who needs to provide bank details
-        is_educator = user_role.lower() in ["teacher", "professor", "principal", "mentor"]
-        
-        if is_educator:
-            # Check if bank details already exist for this user
-            bank_details = db.bank_details.find_one({'unique_identifier': unique_identifier})
-            
-            if not bank_details:
-                # If no bank details exist, redirect to the bank details page
-                if redirect_to_shared and invite_token:
-                    # Store the invite token for after bank details are provided
-                    session["post_bank_details_redirect"] = f"/shared_profiles/{invite_token}"
-                return redirect(url_for("bank_details"))
-            else:
-                # Update user_data with existing bank details
-                user_data['bank_details'] = bank_details
-                db.users.update_one(
-                    {'unique_identifier': unique_identifier},
-                    {'$set': {'bank_details': bank_details}}
+            result = db.users.insert_one(user_data)
+            session["user_id"] = str(result.inserted_id)
+            # If invite_token was used, update the invite with the new user's _id
+            if invite_token:
+                db.invites.update_one(
+                    {'token': invite_token},
+                    {'$set': {'used_by': str(result.inserted_id)}}
                 )
+
+        # Initialize background tasks for this user
+        background_tasks[session["user_id"]] = {}
 
         # Redirect based on invitation status
         if redirect_to_shared and invite_token:
@@ -392,8 +444,19 @@ def callback():
         else:
             return redirect(url_for("profile"))
 
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 400:
+            print(f"LinkedIn API 400 Error: {e}")
+            flash("LinkedIn authentication failed (bad request). Please try logging in again.", "danger")
+            return redirect(url_for("home"))
+        else:
+            print(f"LinkedIn API Error: {e}")
+            flash("There was a problem connecting to LinkedIn. Please try again.", "danger")
+            return redirect(url_for("home"))
     except requests.exceptions.RequestException as e:
-        return f"LinkedIn API Error: {e}", 500
+        print(f"LinkedIn API Error: {e}")
+        flash("There was a problem connecting to LinkedIn. Please try again. If the problem persists, contact support.", "danger")
+        return redirect(url_for("home"))
 
 def fetch_education_experience_details(profile_link):
     url = f"https://api.lix-it.com/v1/person?profile_link={profile_link}"
@@ -469,6 +532,8 @@ def fetch_education_experience_details(profile_link):
         
         # Add the dictionary to our list
         experience_details.append(experience_dict)
+
+    print("Experience Details are from 1:", experience_details)
 
     return education_details, experience_details
 
@@ -670,101 +735,45 @@ def fetch_linkedin_profile_data(profile_link):
 
 @app.route("/bank_details", methods=["GET", "POST"])
 def bank_details():
-    """ Page for educators to enter their bank details or UPI ID.
-    This page appears after LinkedIn login if the user is an educator and has no bank details.
-    """
     if "user_id" not in session:
-        flash("Please log in first.", "warning")
+        flash("Please log in to access this page.", "danger")
         return redirect(url_for("home"))
-
-    # Check if user is an educator
-    user_role = session.get("role", "").lower()
-    is_educator = user_role in ["teacher", "professor", "principal", "mentor"]
     
-    if not is_educator:
-        # Non-educators skip this page
-        return redirect(url_for("profile"))
-
-    # Handle form submission
     if request.method == "POST":
-        payment_method = request.form.get("payment_method")
-        user_id = session.get("user_id")
-        user_email = session.get("email")
-        user_role = session.get("role", "")
-        
-        # Create unique identifier
-        unique_identifier = f"{user_email}_{user_role}"
-        
-        bank_details = {
-            "user_id": user_id,
-            "unique_identifier": unique_identifier,
-            "email": user_email,
-            "payment_method": payment_method,
-            "created_at": datetime.now(),
-            "updated_at": datetime.now()
-        }
-
-        # Check if we have valid data before continuing
-        valid_submission = False
-        
-        if payment_method == "bank":
-            account_holder_name = request.form.get("account_holder_name", "").strip()
-            account_number = request.form.get("account_number", "").strip()
-            ifsc_code = request.form.get("ifsc_code", "").strip()
-            bank_name = request.form.get("bank_name", "").strip()
+        try:
+            payment_type = request.form.get("payment_type")
+            bank_details = {}
             
-            # Add bank details if provided
-            if account_holder_name or account_number or ifsc_code or bank_name:
-                bank_details.update({
-                    "account_holder_name": account_holder_name,
-                    "account_number": account_number,
-                    "ifsc_code": ifsc_code,
-                    "bank_name": bank_name
-                })
-                valid_submission = True
-        else:  # UPI
-            upi_id = request.form.get("upi_id", "").strip()
+            if payment_type == "bank":
+                bank_details = {
+                    "payment_type": "bank",
+                    "account_holder": request.form.get("account_holder"),
+                    "account_number": request.form.get("account_number"),
+                    "ifsc_code": request.form.get("ifsc_code"),
+                    "bank_name": request.form.get("bank_name")
+                }
+            else:
+                bank_details = {
+                    "payment_type": "upi",
+                    "upi_id": request.form.get("upi_id")
+                }
             
-            # Add UPI if provided
-            if upi_id:
-                bank_details.update({
-                    "upi_id": upi_id
-                })
-                valid_submission = True
-
-        # Store in database if we have valid data
-        if valid_submission:
-            try:
-                # Update if exists, insert if not
-                db.bank_details.update_one(
-                    {"unique_identifier": unique_identifier},
-                    {"$set": bank_details},
-                    upsert=True
-                )
-                
-                # Also update the user document with bank details
-                db.users.update_one(
-                    {"unique_identifier": unique_identifier},
-                    {"$set": {"bank_details": bank_details}}
-                )
-                
-                flash("Payment information saved successfully!", "success")
-                
-                # Check if we need to redirect somewhere special after bank details
-                post_redirect = session.get("post_bank_details_redirect")
-                if post_redirect:
-                    # Clear the special redirect
-                    session.pop("post_bank_details_redirect", None)
-                    return redirect(post_redirect)
-                else:
-                    return redirect(url_for("profile"))
-                    
-            except Exception as e:
-                flash(f"Error saving payment information: {str(e)}", "danger")
-        else:
-            flash("Please provide at least some payment information.", "warning")
-
-    return render_template("bank_details.html", session=session)
+            # Update user's bank details in database
+            db.users.update_one(
+                {"_id": ObjectId(session["user_id"])},
+                {"$set": {"bank_details": bank_details}}
+            )
+            
+            flash("Payment details saved successfully!", "success")
+            return redirect(url_for("profile"))
+            
+        except Exception as e:
+            print(f"Error saving bank details: {e}")
+            flash("An error occurred while saving payment details. Please try again.", "danger")
+            return redirect(url_for("profile"))
+    
+    # GET request - redirect to profile page
+    return redirect(url_for("profile"))
 
 @app.route("/user_profile_view")
 def user_profile_view():
@@ -797,7 +806,8 @@ def user_profile_view():
         'profile_picture': user_data.get('profile_picture', 'static/default.jpg'),
         'education_details': user_data.get('education_details', []),
         'experience_details': user_data.get('experience_details', []),
-        'linkedin_profile_data': user_data.get('linkedin_profile_data', {})
+        'linkedin_profile_data': user_data.get('linkedin_profile_data', {}),
+        'public_id': str(user_data.get('_id'))
     }
     
     # Extract experience descriptions if available
@@ -808,7 +818,7 @@ def user_profile_view():
                     exp['Organization'] == linkedin_exp.get('organization', {}).get('name')):
                     profile_data['experience_details'][i]['description'] = linkedin_exp.get('description', '')
     
-    return render_template("user_profile_view.html", profile_data=profile_data, now=datetime.now())
+    return render_template("user_profile_view.html", profile_data=profile_data, now=datetime.now(), is_public_view=False)
 
 @app.route("/start_search")
 def start_search():
@@ -1168,40 +1178,10 @@ def profile():
     if "user_id" not in session:
         flash("Please log in first.", "warning")
         return redirect(url_for("home"))
-        
-    # Get user details from session
     user_id = session.get("user_id")
-    user_email = session.get("email")
-    user_role = session.get("role", "")
-    
-    # Create unique identifier
-    unique_identifier = f"{user_email}_{user_role}"
-    
-    # Check if user exists in database
-    existing_user = db.users.find_one({'unique_identifier': unique_identifier})
-    
-    if existing_user:
-        # Check when user last updated profile data
-        last_updated = existing_user.get('last_updated', datetime.min)
-        time_since_update = datetime.now() - last_updated
-        
-        # Update session with the latest profile picture from database
-        if 'profile_picture' in existing_user:
-            session['profile_picture'] = existing_user['profile_picture']
-        
-        # If it's been more than a day since last update, refresh data
-        if time_since_update.days > 0:
-            return redirect(url_for("update_profile"))
-    else:
-        # This shouldn't happen if callback is working correctly
-        # but just in case, redirect to home
-        flash("User profile not found. Please log in again.", "warning")
-        return redirect(url_for("home"))
-        
-    # Continue with normal profile rendering
-    return render_template("profile.html", session=session)
-
-
+    user = db.users.find_one({"_id": ObjectId(user_id)})
+    bank_details = user.get("bank_details", {}) if user else {}
+    return render_template("profile.html", session=session, bank_details=bank_details)
 
 @app.route("/logout", methods=["GET", "POST"])
 def logout():
@@ -1241,6 +1221,7 @@ def send_profiles_list():
         
         # Get current user information
         user_role = session.get('role', '')
+        
         first_name = session.get('first_name', '')
         last_name = session.get("last_name", "")
         user_name = first_name + " " + last_name
@@ -1562,6 +1543,304 @@ def toggle_saved_profile():
 @atexit.register
 def shutdown_executor():
     executor.shutdown(wait=False)
+
+@app.route("/admin/users")
+def admin_users():
+    """
+    Admin page to display all users of the application.
+    Requires admin authentication.
+    """
+    # Check if user is logged in
+    if "user_id" not in session:
+        flash("Please log in first.", "warning")
+        return redirect(url_for("home"))
+    
+    # Check if user has admin privileges
+    # For now, we'll use email as identifier - in production, use proper admin roles
+    admin_emails = ["admin@example.com"]  # Replace with actual admin emails
+    if session.get("email") not in admin_emails:
+        flash("You don't have permission to access this page.", "danger")
+        return redirect(url_for("profile"))
+    
+    try:
+        # Fetch all users from database
+        users = list(db.users.find({}, {
+            'first_name': 1, 
+            'last_name': 1,
+            'email': 1,
+            'role': 1,
+            'last_login': 1,
+            'referral_count': 1,
+            'linkedin_url': 1
+        }))
+        
+        # Format data for display
+        for user in users:
+            # Convert ObjectId to string for template rendering
+            user['_id'] = str(user['_id'])
+            
+            # Format last login date
+            if 'last_login' in user:
+                user['last_login_formatted'] = user['last_login'].strftime("%Y-%m-%d %H:%M")
+            else:
+                user['last_login_formatted'] = "Never"
+                
+            # Count saved profiles
+            user['saved_profiles_count'] = db.saved_profiles.count_documents({
+                'saved_by': user['email']
+            })
+            
+            # Check for bank details (for educators)
+            user['has_bank_details'] = bool(db.bank_details.find_one({
+                'email': user['email']
+            }))
+        
+        return render_template("admin_users.html", users=users)
+        
+    except Exception as e:
+        flash(f"Error loading users: {str(e)}", "danger")
+        return redirect(url_for("profile"))
+
+@app.route("/admin/user_details/<user_id>", methods=["GET"])
+def admin_user_details(user_id):
+    """
+    API endpoint to fetch detailed user information for admin panel.
+    """
+    # Check if user is logged in
+    if "user_id" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    # Check if user has admin privileges
+    admin_emails = ["admin@example.com"]  # Replace with actual admin emails
+    if session.get("email") not in admin_emails:
+        return jsonify({"error": "Forbidden"}), 403
+    
+    try:
+        # Convert string ID to ObjectId
+        from bson.objectid import ObjectId
+        obj_id = ObjectId(user_id)
+        
+        # Fetch user data
+        user_data = db.users.find_one({"_id": obj_id})
+        
+        if not user_data:
+            return jsonify({"error": "User not found"}), 404
+            
+        # Format the data for frontend display
+        result = {
+            "basic_info": {
+                "id": str(user_data["_id"]),
+                "first_name": user_data.get("first_name", ""),
+                "last_name": user_data.get("last_name", ""),
+                "email": user_data.get("email", ""),
+                "role": user_data.get("role", ""),
+                "linkedin_url": user_data.get("linkedin_url", ""),
+                "profile_picture": user_data.get("profile_picture", "/static/default.jpg"),
+                "last_login": user_data.get("last_login", "").strftime("%Y-%m-%d %H:%M:%S") if user_data.get("last_login") else "Never"
+            },
+            "stats": {
+                "referral_count": user_data.get("referral_count", 0),
+                "saved_profiles_count": db.saved_profiles.count_documents({"saved_by": user_data.get("email", "")}),
+                "invites_sent": db.invites.count_documents({"created_by": user_data.get("email", "")}),
+                "invites_used": db.invites.count_documents({"created_by": user_data.get("email", ""), "used": True})
+            }
+        }
+        
+        # Add additional data if this is an educator
+        user_role = user_data.get("role", "").lower()
+        if user_role in ["teacher", "professor", "principal", "mentor"]:
+            # Get bank details
+            bank_details = db.bank_details.find_one({"email": user_data.get("email")})
+            if bank_details:
+                # Remove sensitive information
+                if "account_number" in bank_details:
+                    # Mask account number
+                    account_number = bank_details["account_number"]
+                    masked_number = "X" * (len(account_number) - 4) + account_number[-4:]
+                    bank_details["account_number"] = masked_number
+                
+                result["bank_details"] = {
+                    "payment_method": bank_details.get("payment_method", ""),
+                    "account_holder_name": bank_details.get("account_holder_name", ""),
+                    "account_number": bank_details.get("account_number", ""),
+                    "bank_name": bank_details.get("bank_name", ""),
+                    "ifsc_code": bank_details.get("ifsc_code", ""),
+                    "upi_id": bank_details.get("upi_id", ""),
+                    "updated_at": bank_details.get("updated_at", "").strftime("%Y-%m-%d") if bank_details.get("updated_at") else ""
+                }
+                
+        # Add activity data
+        recent_profiles = list(db.saved_profiles.find(
+            {"saved_by": user_data.get("email", "")},
+            {"name": 1, "link": 1, "institute": 1, "saved_at": 1}
+        ).sort("saved_at", -1).limit(5))
+        
+        # Format profile data
+        result["recent_activity"] = [{
+            "id": str(profile["_id"]),
+            "name": profile.get("name", ""),
+            "link": profile.get("link", ""),
+            "institute": profile.get("institute", ""),
+            "saved_at": profile.get("saved_at", "").strftime("%Y-%m-%d %H:%M") if profile.get("saved_at") else ""
+        } for profile in recent_profiles]
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/admin/user_profiles/<user_id>")
+def admin_user_profiles(user_id):
+    """
+    Admin page to view all profiles saved by a specific user.
+    """
+    # Check if user is logged in
+    if "user_id" not in session:
+        flash("Please log in first.", "warning")
+        return redirect(url_for("home"))
+    
+    # Check if user has admin privileges
+    admin_emails = ["admin@example.com"]  # Replace with actual admin emails
+    if session.get("email") not in admin_emails:
+        flash("You don't have permission to access this page.", "danger")
+        return redirect(url_for("profile"))
+    
+    try:
+        # Convert string ID to ObjectId
+        from bson.objectid import ObjectId
+        obj_id = ObjectId(user_id)
+        
+        # Fetch user data
+        user_data = db.users.find_one({"_id": obj_id})
+        
+        if not user_data:
+            flash("User not found.", "danger")
+            return redirect(url_for("admin_users"))
+        
+        # Get the user's email
+        user_email = user_data.get("email", "")
+        
+        if not user_email:
+            flash("User email not found.", "danger")
+            return redirect(url_for("admin_users"))
+        
+        # Fetch all profiles saved by this user
+        profiles = list(saved_profiles_collection.find({"saved_by": user_email}))
+        
+        # Convert ObjectId to string for template rendering
+        for profile in profiles:
+            profile["_id"] = str(profile["_id"])
+            
+            # Format saved_at date
+            if "saved_at" in profile:
+                profile["saved_at_formatted"] = profile["saved_at"].strftime("%Y-%m-%d %H:%M")
+            else:
+                profile["saved_at_formatted"] = "Unknown"
+        
+        # Render the template with user data and profiles
+        return render_template(
+            "admin_user_profiles.html", 
+            user=user_data, 
+            profiles=profiles,
+            profiles_count=len(profiles)
+        )
+        
+    except Exception as e:
+        flash(f"Error loading user profiles: {str(e)}", "danger")
+        return redirect(url_for("admin_users"))
+
+@app.route("/admin/delete_profile/<profile_id>", methods=["POST"])
+def admin_delete_profile(profile_id):
+    """
+    API endpoint for admin to delete a saved profile.
+    """
+    # Check if user is logged in
+    if "user_id" not in session:
+        return jsonify({"success": False, "error": "Unauthorized"}), 401
+    
+    # Check if user has admin privileges
+    admin_emails = ["admin@example.com"]  # Replace with actual admin emails
+    if session.get("email") not in admin_emails:
+        return jsonify({"success": False, "error": "Forbidden"}), 403
+    
+    try:
+        # Convert string ID to ObjectId
+        from bson.objectid import ObjectId
+        obj_id = ObjectId(profile_id)
+        
+        # Delete the profile
+        result = saved_profiles_collection.delete_one({"_id": obj_id})
+        
+        if result.deleted_count > 0:
+            return jsonify({
+                "success": True,
+                "message": "Profile deleted successfully"
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": "Profile not found or already deleted"
+            })
+            
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+# Add a public profile route (old, for backward compatibility)
+@app.route('/profile/<public_id>')
+def public_profile(public_id):
+    user = db.users.find_one({'public_id': public_id})
+    if not user:
+        return "Profile not found", 404
+    profile_data = {
+        'basic_info': {
+            'First Name': user.get('first_name', 'N/A'),
+            'Last Name': user.get('last_name', 'N/A'),
+            'Email': user.get('email', 'N/A'),
+            'Role': user.get('role', 'N/A'),
+            'LinkedIn URL': user.get('linkedin_url', 'N/A')
+        },
+        'profile_picture': user.get('profile_picture', 'static/default.jpg'),
+        'education_details': user.get('education_details', []),
+        'experience_details': user.get('experience_details', []),
+        'linkedin_profile_data': user.get('linkedin_profile_data', {}),
+        'public_id': user.get('public_id')
+    }
+    return render_template('user_profile_view.html', profile_data=profile_data)
+
+# Add a new invitation-style public profile route
+@app.route('/invite/<user_id>')
+def invite_profile(user_id):
+    try:
+        user_data = db.users.find_one({'_id': ObjectId(user_id)})
+    except Exception:
+        return "Invalid user ID", 404
+    if not user_data:
+        return "Profile not found", 404
+
+    profile_data = {
+        'basic_info': {
+            'First Name': user_data.get('first_name', 'N/A'),
+            'Last Name': user_data.get('last_name', 'N/A'),
+            'Email': user_data.get('email', 'N/A'),
+            'Role': user_data.get('role', 'N/A'),
+            'LinkedIn URL': user_data.get('linkedin_url', 'N/A')
+        },
+        'profile_picture': user_data.get('profile_picture', 'static/default.jpg'),
+        'education_details': user_data.get('education_details', []),
+        'experience_details': user_data.get('experience_details', []),
+        'linkedin_profile_data': user_data.get('linkedin_profile_data', {}),
+        'public_id': str(user_data.get('_id'))
+    }
+
+    # Extract experience descriptions if available (same logic as private view)
+    if 'linkedin_profile_data' in user_data and 'experience' in user_data['linkedin_profile_data']:
+        for i, exp in enumerate(profile_data['experience_details']):
+            for linkedin_exp in user_data['linkedin_profile_data']['experience']:
+                if (exp['Title'] == linkedin_exp.get('title') and 
+                    exp['Organization'] == linkedin_exp.get('organization', {}).get('name')):
+                    profile_data['experience_details'][i]['description'] = linkedin_exp.get('description', '')
+
+    return render_template("user_profile_view.html", profile_data=profile_data, now=datetime.now(), is_public_view=True)
 
 if __name__ == "__main__":
     app.run(debug=True)

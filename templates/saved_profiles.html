@@ -9,11 +9,14 @@
             <div class="row align-items-center py-2">
                 <div class="col-12 col-sm">
                     <h1 class="h4 mb-1 fw-bold">
-                        <i class="bi bi-bookmark-star me-2"></i>Saved Profiles
+                        <i class="bi bi-bookmark-star me-2"></i><span id="page-title">Saved Profiles</span>
                     </h1>
-                    <p class="text-muted small mb-2 mb-sm-0 mt-1">Profiles you've saved for future reference</p>
+                    <p class="text-muted small mb-2 mb-sm-0 mt-1" id="page-description">Profiles you've saved for future reference</p>
                 </div>
                 <div class="col-12 col-sm-auto mt-2 mt-sm-0" id="normalControls">
+                    <button id="toggleViewBtn" class="btn btn-outline-primary btn-sm me-2">
+                        <i class="bi bi-people me-1"></i>Find Connections
+                    </button>
                     <button id="startSelectionBtn" class="btn btn-outline-secondary btn-sm me-2">
                         <i class="bi bi-share me-1"></i>Share
                     </button>
@@ -31,7 +34,100 @@
                 </div>
             </div>
         </div>
-        
+    </div>
+
+    <!-- Connect With Your Network Section -->
+    <div class="card shadow-sm border-0 mb-4" id="network-section" style="display: none;">
+        <div class="card-body p-3">
+            <div class="mb-4">
+                <h2 class="section-header">
+                    <i class="bi bi-people me-2"></i>Connect With Your Network
+                </h2>
+
+                <!-- Education/Experience Selection Dropdown -->
+                <div class="row mb-4">
+                    <div class="col-12 col-md-8">
+                        <div class="selector-card">
+                            {% if session.get('role', '').lower() in ['teacher', 'professor', 'principal', 'mentor'] %}
+                            <h5 class="selector-title">Select Experience</h5>
+                            <p class="selector-desc">Choose which organization to search for connections:</p>
+                            <select class="form-select custom-select" id="education-selector">
+                                {% if session.get("experience_details") %}
+                                {% for exp in session["experience_details"] %}
+                                <option value="{{ loop.index0 }}">
+                                    {{ exp.get("Organization", " ") }} - {{ exp.get("Title", " ") }}
+                                </option>
+                                {% endfor %}
+                                {% else %}
+                                <option value="0">No experience details available</option>
+                                {% endif %}
+                            </select>
+                            {% else %}
+                            <h5 class="selector-title">Select Education</h5>
+                            <p class="selector-desc">Choose which educational institution to search for connections:</p>
+                            <select class="form-select custom-select" id="education-selector">
+                                {% if session.get("education_details") %}
+                                {% for edu in session["education_details"] %}
+                                <option value="{{ loop.index0 }}">
+                                    {{ edu.get("InstitutionName", " ") }} - {{ edu.get("Degree", " ") }}
+                                </option>
+                                {% endfor %}
+                                {% else %}
+                                <option value="0">No education details available</option>
+                                {% endif %}
+                            </select>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dynamic Connection Cards -->
+                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3 g-md-4" id="connection-cards">
+                    <!-- Cards will be dynamically populated via JavaScript -->
+                </div>
+            </div>
+
+            <!-- Alumni/Connection Results Section -->
+            <div>
+                <h2 class="section-header" id="results-heading">
+                    <i class="bi bi-list me-2"></i>Search Results
+                </h2>
+
+                <!-- Loading spinner that will be shown while data is being fetched -->
+                <div id="alumni-loading" class="loading-container" style="display: none;">
+                    <div class="spinner">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <h4 class="loading-text">Loading profiles...</h4>
+                    <p class="loading-subtext">This may take a few moments</p>
+                </div>
+
+                <!-- No selection message -->
+                <div id="no-selection" class="empty-state">
+                    <i class="bi bi-arrow-up-circle"></i>
+                    <h4>Select an option above to start searching</h4>
+                </div>
+
+                <!-- Alumni content that will be populated when data is available -->
+                <div id="alumni-content" style="display: none;">
+                    <div class="d-flex justify-content-between mb-3">
+                        <h5 id="search-info" class="search-results-info"></h5>
+                    </div>
+                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3 g-md-4" id="alumni-container">
+                        <!-- Will be populated via JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Error message if search fails -->
+                <div id="alumni-error" class="error-message" style="display: none;">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <span id="error-message">Error loading profiles.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card shadow-sm border-0 mb-4" id="saved-profiles-section">        
         <div class="card-body p-3">
             {% if profiles %}
                 <!-- Filter Controls -->
@@ -120,6 +216,39 @@
     </div>
 </div>
 
+<!-- Modal for adding remarks -->
+<div class="modal fade" id="remarkModal" tabindex="-1" aria-labelledby="remarkModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0">
+            <div class="modal-header border-0">
+                <h5 class="modal-title" id="remarkModalLabel">Add a Remark</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="remarkForm">
+                    <div class="mb-3">
+                        <label for="profileRemark" class="form-label">Add a note about this profile:</label>
+                        <textarea class="form-control custom-textarea" id="profileRemark" rows="3"
+                            placeholder="e.g., Met at conference, Potential research collaborator, etc."></textarea>
+                    </div>
+                    <input type="hidden" id="remarkProfileName">
+                    <input type="hidden" id="remarkProfileLink">
+                    <input type="hidden" id="remarkProfileType">
+                    <input type="hidden" id="remarkProfileInstitute">
+                </form>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary save-btn" id="saveRemarkBtn">Save Profile</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Link to base and responsive styles -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile-base.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile-responsive.css') }}">
+
 <!-- Toast notification for delete status -->
 <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
     <div id="deleteToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
@@ -144,6 +273,20 @@
         </div>
         <div class="toast-body">
             Profiles list has been sent successfully!
+        </div>
+    </div>
+</div>
+
+<!-- Toast notification for save status -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="saveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header border-0">
+            <i class="bi bi-check-circle text-success me-2"></i>
+            <strong class="me-auto">Profile Saved</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+            Profile has been saved successfully!
         </div>
     </div>
 </div>
